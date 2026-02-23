@@ -13,6 +13,7 @@
 # System Files
 .DS_Store
 Thumbs.db
+*.db
 
 # Unit test / coverage reports
 .coverage
