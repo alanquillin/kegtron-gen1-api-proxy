@@ -21,7 +21,24 @@ async def write_chars(device, data, response=True):
             await client.write_gatt_char(k, v, response=response)
 
 
-async def unlock(device):
+async def unlock(device, port: int):
+    port_cnt = device.get("port_cnt", 1)
+    
+    if port == 0:
+        key = kegtron.CHAR_XGATT0_WR_UNLOCK_HANDLE
+    elif port == 1:
+        port_cnt = device.get("port_cnt", 1)
+        if port_cnt == 1:
+            raise Exception("Invalid port number 1, device only have port 0")
+        key = kegtron.CHAR_XGATT1_WR_UNLOCK_HANDLE
+    else:
+        raise Exception("invalid port number.  Must be 0 or 1")
+    
+    data = {key: kegtron.XGATT_WR_UNLOCK_VALUE}
+
+    await write_chars(device, data)
+
+async def unlock_all(device):
     port_cnt = device.get("port_cnt", 1)
 
     data = {kegtron.CHAR_XGATT0_WR_UNLOCK_HANDLE: kegtron.XGATT_WR_UNLOCK_VALUE}

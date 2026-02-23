@@ -62,14 +62,14 @@ async def reset_volume_rpc(device_id: str, request: ResetVolumeRequest):
 
 @router.post("/devices/{device_id}/rpc/Kegtron.UnlockWriteAll")
 async def unlock_write_all_rpc(device_id: str):
-    raise HTTPException(status_code=405, detail="Method not yet implemented")
-    # device = deviceDB.get(device_id)
-    # if not device:
-    #     raise HTTPException(status_code=404, detail=f'Unknown device with id {device_id}')
+    # raise HTTPException(status_code=405, detail="Method not yet implemented")
+    device = deviceDB.get(device_id)
+    if not device:
+        raise HTTPException(status_code=404, detail=f'Unknown device with id {device_id}')
 
-    # await gatt.unlock(device)
+    await gatt.unlock_all(device)
 
-    # return {"success": True}
+    return {"success": True}
 
 @router.post("/devices/{device_id}/rpc/Kegtron.UnlockWrite")
 async def unlock_write_rpc(device_id: str, request: UnlockWriteRequest, db: AsyncSession = Depends(get_async_db)):
@@ -86,14 +86,6 @@ async def unlock_write_rpc(device_id: str, request: UnlockWriteRequest, db: Asyn
             raise HTTPException(status_code=400, detail="port value is required but not supplied.")
         port_index = 0
 
-    key = None
-    if port_index == 0:
-        key = kegtron.CHAR_XGATT0_WR_UNLOCK_HANDLE
-    elif port_index == 1:
-        key = kegtron.CHAR_XGATT1_WR_UNLOCK_HANDLE
-    else:
-        raise HTTPException(status_code=400, detail=f'Unknown port index: {port_index}. Must be 0 or 1')
-
-    await gatt.write_chars(device, {key: kegtron.XGATT_WR_UNLOCK_VALUE})
+    await gatt.unlock(device, port_index)
 
     return {"success": True}
