@@ -1,28 +1,31 @@
+from fastapi import APIRouter, HTTPException, Request, Depends
+from fastapi.responses import JSONResponse
+from typing import Dict, Any
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from data import devices as deviceDB
+from database import get_async_db
 
-from flask import current_app as app, jsonify
+router = APIRouter()
 
-PREFIX = "/api/v1"
-
-@app.route(f'{PREFIX}/health')
-def health():
+@router.get("/health")
+async def health():
     return "We are up and running!"
 
 
-@app.route(f'{PREFIX}/ping')
-def ping():
+@router.get("/ping")
+async def ping():
     return "pong"
 
 
-@app.route(f'{PREFIX}/devices')
-def get_devices_int():
-    return jsonify(deviceDB.list())
+@router.get("/devices")
+async def get_devices_int(db: AsyncSession = Depends(get_async_db)) -> Dict[str, Any]:
+    return await deviceDB.list(db)
 
 
-@app.route(f'{PREFIX}/devices/<string:id>', methods=['GET'])
-def get_device(id):
-    data = deviceDB.get(id)
+@router.get("/devices/{device_id}")
+async def get_device(device_id: str, db: AsyncSession = Depends(get_async_db)):
+    data = await deviceDB.get(device_id, db)
     if not data:
-        return 404
-
-    return jsonify(data), 200
+        raise HTTPException(status_code=404, detail=f"Device with id {device_id} not found")
+    return data

@@ -7,8 +7,7 @@ import sys
 from adafruit_ble import BLERadio
 from adafruit_ble.advertising import Advertisement
 from adafruit_ble.advertising.standard import ProvideServicesAdvertisement
-from flask import jsonify
-import requests
+import httpx
 
 from lib.logging import init as init_logging 
 from lib.config import Config
@@ -50,7 +49,7 @@ def save_device(data):
 
     LOG.info(f'Saving device to proxy: "{data.get("name")}"')
     LOG.debug(f'Device data: {data}')
-    r = requests.post(f'{proxy_url_prefix}/devices', json=to_json(data))
+    r = httpx.post(f'{proxy_url_prefix}/devices', json=to_json(data))
     if r.status_code != 201:
         if r.status_code == 400 and "The device already exists" in r.text:
             LOG.debug("Device already exists, so we are good!")
@@ -97,7 +96,7 @@ def update_device(data, port_data, port_data_raw):
         LOG.info(f'Update window exceeded for {data["id"]} on port {port_index}, updating the proxy.  Last update: {old_port_updated.isoformat()}')
 
     LOG.debug(f'Updating device "{data.get("name")}" on proxy.  Device data: {data}')
-    r = requests.put(f'{proxy_url_prefix}/devices/{data.get("id")}', json=to_json(data))
+    r = httpx.put(f'{proxy_url_prefix}/devices/{data.get("id")}', json=to_json(data))
     if r.status_code != 200:
         LOG.error(f'Failed to update device data. Status Code: {r.status_code}, Message: {r.text}')
     else:

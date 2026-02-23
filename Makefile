@@ -18,6 +18,7 @@ ISORT := $(POETRY) run isort
 PYLINT := $(POETRY) run pylint
 PYTEST := $(POETRY) run pytest
 PYTHON := $(POETRY) run python3
+ALEMBIC := $(POETRY) run alembic
 
 TAG_LATEST := false
 DOCKER_IMAGE ?= kegtron-v1-api-proxy
@@ -95,5 +96,5 @@ format:
 
 # Migrations
 
-# create-migration: 
-# 	pushd ./api && ./migrate.sh create $@ && popd
+create-migration: 
+	alembic revision --autogenerate -m "description"

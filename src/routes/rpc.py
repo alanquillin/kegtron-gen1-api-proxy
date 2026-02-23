@@ -1,24 +1,37 @@
+from fastapi import APIRouter, HTTPException, Request, Depends
+from fastapi.responses import JSONResponse
+from typing import Optional
+from pydantic import BaseModel, Field
+
+from sqlalchemy.ext.asyncio import AsyncSession
 from data import devices as deviceDB
-from routes.public import PREFIX
+from database import get_async_db
+import kegtron
+from kegtron import gatt
 
-from flask import current_app as app, jsonify
+router = APIRouter()
 
-@app.route(f'{PREFIX}/devices/<string:id>/rpc/Kegtron.ResetVolume', methods=['POST'])
-async def reset_volume_rpc(id):
-    return "Method not yet implemented", 405
-    # device = deviceDB.get(id)
+class ResetVolumeRequest(BaseModel):
+    port: Optional[int] = Field(None, description="Port index (0 or 1)")
+    size: Optional[float] = Field(None, description="Volume size")
+    startVolume: Optional[float] = Field(None, description="Starting volume")
+
+class UnlockWriteRequest(BaseModel):
+    port: Optional[int] = Field(None, description="Port index (0 or 1)")
+
+@router.post("/devices/{device_id}/rpc/Kegtron.ResetVolume")
+async def reset_volume_rpc(device_id: str, request: ResetVolumeRequest):
+    raise HTTPException(status_code=405, detail="Method not yet implemented")
+    # device = deviceDB.get(device_id)
     # if not device:
-    #     return f'unknow device with id {id}', 404
+    #     raise HTTPException(status_code=404, detail=f'Unknown device with id {device_id}')
 
-    # data = request.get_json()
-    # port_index = data.get("port")
-    # size = data.get("size")
-    # volume = data.get("startVolume")
-
+    # port_index = request.port
+    
     # if port_index is None:
     #     port_cnt = device.get("port_cnt", 1)
     #     if port_cnt > 1:
-    #         return "port value is required but not supplied.", 400
+    #         raise HTTPException(status_code=400, detail="port value is required but not supplied.")
     #     port_index = 0
 
     # u_data = {}
@@ -33,55 +46,54 @@ async def reset_volume_rpc(id):
     #     size_key = kegtron.CHAR_XGATT1_VOL_SIZE_HANDLE
     #     volume_key = kegtron.CHAR_XGATT1_VOL_START_HANDLE
     # else:
-    #     return f'unknown port index: {port_index}.  Must be 0 or 1', 400
+    #     raise HTTPException(status_code=400, detail=f'Unknown port index: {port_index}. Must be 0 or 1')
 
-    # if size:
-    #     u_data[size_key] = size
+    # if request.size:
+    #     u_data[size_key] = request.size
 
-    # if volume:
-    #     u_data[volume_key] = volume
+    # if request.startVolume:
+    #     u_data[volume_key] = request.startVolume
 
     # app.logger.debug(f'attempting to write data to device: {u_data}')
     # await gatt.write_chars(device, u_data)
 
-    # return jsonify({"success": True}), 200
+    # return {"success": True}
 
 
-@app.route(f'{PREFIX}/devices/<string:id>/rpc/Kegtron.UnlockWriteAll', methods=['POST'])
-async def unlock_write_all_rpc(id):
-    return "Method not yet implemented", 405
-    # device = deviceDB.get(id)
+@router.post("/devices/{device_id}/rpc/Kegtron.UnlockWriteAll")
+async def unlock_write_all_rpc(device_id: str):
+    raise HTTPException(status_code=405, detail="Method not yet implemented")
+    # device = deviceDB.get(device_id)
     # if not device:
-    #     return f'unknow device with id {id}', 404
+    #     raise HTTPException(status_code=404, detail=f'Unknown device with id {device_id}')
 
     # await gatt.unlock(device)
 
-    # return jsonify({"success": True}), 200
+    # return {"success": True}
 
-@app.route(f'{PREFIX}/devices/<string:id>/rpc/Kegtron.UnlockWrite', methods=['POST'])
-async def unlock_write_rpc(id):
-    return "Method not yet implemented", 405
-    # device = deviceDB.get(id)
-    # if not device:
-    #     return f'unknow device with id {id}', 404
+@router.post("/devices/{device_id}/rpc/Kegtron.UnlockWrite")
+async def unlock_write_rpc(device_id: str, request: UnlockWriteRequest, db: AsyncSession = Depends(get_async_db)):
+    # raise HTTPException(status_code=405, detail="Method not yet implemented")
+    device = await deviceDB.get(device_id, db=db)
+    if not device:
+        raise HTTPException(status_code=404, detail=f'Unknown device with id {device_id}')
 
-    # data = request.get_json()
-    # port_index = data.get("port")
+    port_index = request.port
 
-    # if port_index is None:
-    #     port_cnt = device.get("port_cnt", 1)
-    #     if port_cnt > 1:
-    #         return "port value is required but not supplied.", 400
-    #     port_index = 0
+    if port_index is None:
+        port_cnt = device.get("port_cnt", 1)
+        if port_cnt > 1:
+            raise HTTPException(status_code=400, detail="port value is required but not supplied.")
+        port_index = 0
 
-    # key = None
-    # if port_index == 0:
-    #     key = kegtron.CHAR_XGATT0_WR_UNLOCK_HANDLE
-    # elif port_index == 1:
-    #     key = kegtron.CHAR_XGATT1_WR_UNLOCK_HANDLE
-    # else:
-    #     return f'unknown port index: {port_index}.  Must be 0 or 1', 400
+    key = None
+    if port_index == 0:
+        key = kegtron.CHAR_XGATT0_WR_UNLOCK_HANDLE
+    elif port_index == 1:
+        key = kegtron.CHAR_XGATT1_WR_UNLOCK_HANDLE
+    else:
+        raise HTTPException(status_code=400, detail=f'Unknown port index: {port_index}. Must be 0 or 1')
 
-    # await gatt.write_chars(device, {key: kegtron.XGATT_WR_UNLOCK_VALUE})
+    await gatt.write_chars(device, {key: kegtron.XGATT_WR_UNLOCK_VALUE})
 
-    # return jsonify({"success": True}), 200
+    return {"success": True}
