@@ -182,9 +182,6 @@ class Config(metaclass=ThreadSafeSingleton):
 
         self._verify_required_keys(required_keys)
 
-        print(self.data_flat)
-        print(self.conversion_schema)
-
     def get(self, key, default=None, required=False):
         keys = [key] + self.key_aliases.get(key.upper(), [])
 

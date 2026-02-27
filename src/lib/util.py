@@ -58,7 +58,6 @@ def flatten_dict(data, parent_name="", sep=".", key_converter=None, skip_key_che
 
     for key, val in data.items():
         child_name = key if not parent_name else f"{parent_name}{sep}{key}"
-        print(f"checking: {child_name}")
         if isinstance(val, dict) and not skip_key_check(child_name):
             flattened.update(flatten_dict(val, parent_name=child_name, sep=sep, key_converter=key_converter, skip_key_check=skip_key_check))
         else:

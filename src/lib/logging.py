@@ -78,10 +78,8 @@ def _enforce_root_propagation():
 def init(config=None, fmt=DEFAULT_LOG_FMT):
     if not config:
         config = Config()
-    print("INITIALIZING LOGGING")
     log_levels = config.get("logging.levels", {})
     log_level = get_log_level(get_def_log_level(config, log_levels))
-    print(f"LOGGING LEVELS: {log_levels}")
     formatter = _create_formatter(config, fmt)
 
     root_logger = getLogger()
@@ -102,7 +100,6 @@ def init(config=None, fmt=DEFAULT_LOG_FMT):
 
     for l, level in log_levels.items():
         root_logger.debug("Setting log level for %s to %s", l, level)
-        print(f"Setting log level for {l} to {level}")
         getLogger(l).setLevel(get_log_level(level))
 
     root_logger.debug("logging initialization complete.")

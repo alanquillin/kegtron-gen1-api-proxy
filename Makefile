@@ -29,6 +29,13 @@ endif
 ifneq ("$(wildcard .env)","")
     include .env
 	export $(shell sed 's/=.*//' .env)
+else
+export KENGTRON_PROXY_CONFIG_BASE_DIR=$(CURDIR)/config
+export KENGTRON_SCANNER_CONFIG_BASE_DIR=$(CURDIR)/config
+export KENGTRON_PROXY_DB_BASE_DIR=$(CURDIR)/data
+export KENGTRON_SCANNER_DB_BASE_DIR=$(CURDIR)/data
+export CONFIG_BASE_DIR=$(CURDIR)/config
+export DB_BASE_DIR=$(CURDIR)/data
 endif
 
 
@@ -50,23 +57,18 @@ update-depends:
 # Targets for running the app
 
 local:
-export KENGTRON_PROXY_CONFIG_BASE_DIR=$(CURDIR)/config
-export KENGTRON_SCANNER_CONFIG_BASE_DIR=$(CURDIR)/config
-export KENGTRON_PROXY_DB_BASE_DIR=$(CURDIR)/data
-export KENGTRON_SCANNER_DB_BASE_DIR=$(CURDIR)/data
-export CONFIG_BASE_DIR=$(CURDIR)/config
-export DB_BASE_DIR=$(CURDIR)/data
+
 
 run-dev-local:
 	$(PYTHON) src/api.py --log DEBUG
 
-run-local: local
+run-local:
 	$(PYTHON) src/api.py
 
-scan: local
+scan:
 	$(PYTHON) src/scan.py 
 
-scan-dev: local
+scan-dev:
 	$(PYTHON) src/scan.py --log DEBUG
 
 # run-db-migrations:
