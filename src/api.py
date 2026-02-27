@@ -1,7 +1,15 @@
 import argparse
-import logging
 import os
 import sys
+
+from lib import logging
+from lib.config import Config
+
+# Initialize configuration
+CONFIG = Config(config_files=["default.json", "api.default.json"], env_prefix="KENGTRON_PROXY")
+
+# Initialize logging
+logging.init(config=CONFIG, fmt=logging.DEFAULT_LOG_FMT)
 
 # Monkey patch to fix FastAPI/Pydantic compatibility issue with reserved keywords
 import inspect
@@ -27,12 +35,8 @@ import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from lib.config import Config
-from lib.logging import init as init_logging
 from lib.json import KegtronProxyJsonEncoder
-from routes import internal, public, rpc
-
-CONFIG = Config()
+from routes import internal, public, rpc, devices
 
 app = FastAPI(
     title="Kegtron V1 API Proxy"
@@ -42,7 +46,7 @@ app = FastAPI(
 async def startup_event():
     logging.info("Starting API service")
     # Initialize database tables
-    from database import init_db
+    from db import init_db
     await init_db()
     logging.info("Database initialized")
 
@@ -61,6 +65,7 @@ app.add_middleware(
 app.state.config = CONFIG
 
 app.include_router(internal.router, prefix="/api/internal/v1")
+app.include_router(devices.router, prefix="/api/v1/devices")
 app.include_router(public.router, prefix="/api/v1")
 app.include_router(rpc.router, prefix="/api/v1")
 
@@ -77,20 +82,20 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
-    CONFIG.setup(env_prefix="KENGTRON_PROXY")
+    logging_level = logging.get_log_level(args.loglevel)
+    logging.set_log_level(logging_level)
 
-    init_logging(config=CONFIG, arg_log_level=args.loglevel)
-
-    port = CONFIG.get("proxy.port", 8000)
+    host = CONFIG.get("api.host", "localhost")
+    port = CONFIG.get("api.port", 8000)
 
     logger = logging.getLogger(__name__)
     logger.debug("config: %s", CONFIG.data_flat)
-    logger.info("Serving on port %s", port)
+    logger.info("Serving on %s:%s", host, port)
     
     try:
         uvicorn.run(
             "api:app",
-            host="localhost",
+            host=host,
             port=port,
             log_level=args.loglevel.lower(),
             reload=False

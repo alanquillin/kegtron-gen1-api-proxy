@@ -1,0 +1,19 @@
+{
+  "__conversion_schema": {
+    "proxy.port": "int",
+    "proxy.enabed": "bool",
+    "force_device_update_after_sec": "int"
+  },
+  "proxy": {
+    "host": "localhost",
+    "port": 5000,
+    "scheme": "http",
+    "enabled": true
+  },
+  "logging": {
+    "levels": {
+      "bleak.backends.corebluetooth.CentralManagerDelegate": "INFO"
+    }
+  },
+  "force_device_update_after_sec": 300
+}

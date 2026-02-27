@@ -78,15 +78,10 @@ def to_dict(val, *args):
 
 
 class Config(metaclass=ThreadSafeSingleton):
-    defaults = {
-        "proxy": {"scheme": "http", "port": 5000, "hostname": "localhost", "enabled": True},
-        "force_device_update_after_sec": 300
-    }
-
-    default_schema = {"proxy.port": "int", "proxy.enabled": "bool", "logging.levels": "dict", "force_device_update_after_sec": "int"}
-
-    key_aliases = {"APP_ID": ["KEGTRON_PROXY"]}
+    defaults = {}
+    default_schema = {}
     type_conversions = {"int": to_int, "bool": to_bool, "list": to_list, "dict": to_dict}
+    key_aliases = {}
 
     def __init__(self, **kwargs):
         self.logger = logging.getLogger("config")
@@ -98,7 +93,7 @@ class Config(metaclass=ThreadSafeSingleton):
             data,
             self.env_prefix,
             key_converter=lambda k: k.replace(".", "_").upper(),
-            skip_key_check=lambda k: self.gen_key(k) in self.conversion_schema,
+            skip_key_check=lambda k: self.fmt_key(k) in self.conversion_schema,
         )
 
     def _load_conf(self, data):
@@ -136,8 +131,11 @@ class Config(metaclass=ThreadSafeSingleton):
 
         return {self.gen_key(k): v for k, v in schema.items()}
 
-    def gen_key(self, key):
-        return f"{self.key_prefix}{key}".replace(".", "_").replace("-", "_").upper()
+    def fmt_key(self, key: str) -> str:
+        return key.replace(".", "_").replace("-", "_").upper()
+
+    def gen_key(self, key: str) -> str:
+        return self.fmt_key(f"{self.key_prefix}{key}")
 
     def setup(  # pylint: disable=too-many-arguments
         self,
@@ -175,7 +173,7 @@ class Config(metaclass=ThreadSafeSingleton):
         config_path = os.environ.get(self.gen_key("CONFIG_PATH"))
         if config_path:
             config_files.append(config_path)
-
+        
         base_dir = os.environ.get(self.gen_key("CONFIG_BASE_DIR"), os.path.dirname(os.path.abspath(__file__)) if not base_dir else base_dir)
         self.set("CONFIG_BASE_DIR", base_dir)
 
@@ -183,6 +181,9 @@ class Config(metaclass=ThreadSafeSingleton):
             self._load_config_file(config_file, base_dir)
 
         self._verify_required_keys(required_keys)
+
+        print(self.data_flat)
+        print(self.conversion_schema)
 
     def get(self, key, default=None, required=False):
         keys = [key] + self.key_aliases.get(key.upper(), [])

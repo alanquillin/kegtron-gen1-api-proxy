@@ -1,0 +1,14 @@
+{
+  "__conversion_schema": {
+    "logging.colored": "bool",
+    "logging.json": "bool",
+    "logging.levels": "dict"
+  },
+  "db": {
+    "path": "kegtron_proxy.db"
+  },
+  "logging": {
+    "colored": true,
+    "json": false
+  }
+}

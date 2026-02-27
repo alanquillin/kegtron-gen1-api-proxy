@@ -1,21 +1,27 @@
 import argparse
 import os
-import logging
 from datetime import datetime, timedelta
 import sys
+
+from lib.config import Config
+from lib import logging
+
+# Initialize configuration
+CONFIG = Config(config_files=["default.json", "scanner.default.json"], env_prefix="KENGTRON_SCANNER")
+
+# Initialize logging
+logging.init(config=CONFIG, fmt=logging.DEFAULT_LOG_FMT)
 
 from adafruit_ble import BLERadio
 from adafruit_ble.advertising import Advertisement
 from adafruit_ble.advertising.standard import ProvideServicesAdvertisement
 import httpx
 
-from lib.logging import init as init_logging 
-from lib.config import Config
 from lib.time import utcnow_aware
 from kegtron import parser as kegtron_parser
 
 LOG = logging.getLogger("ble_scanner")
-CONFIG = Config()
+
 proxy_url_prefix = None
 
 kegtron_devices = {}
@@ -142,7 +148,7 @@ if __name__ == "__main__":
         "--log",
         dest="loglevel",
         choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
-        default=os.environ.get("LOG_LEVEL", "INFO").upper(),
+        default=os.environ.get("LOG_LEVEL", logging.get_def_log_level(CONFIG)).upper(),
         help="Set the logging level",
         
     )
@@ -150,20 +156,18 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    CONFIG.setup(env_prefix="KENGTRON_SCANNER", config_overrides={"proxy": {"enabled": not args.no_proxy}})
+    CONFIG.set("proxy.enabled", not args.no_proxy)
     app_config = CONFIG
 
-    proxy_url_prefix = f'{CONFIG.get("proxy.scheme")}://{CONFIG.get("proxy.hostname")}:{CONFIG.get("proxy.port")}/api/internal/v1'
+    proxy_url_prefix = f'{CONFIG.get("proxy.scheme")}://{CONFIG.get("proxy.host")}:{CONFIG.get("proxy.port")}/api/internal/v1'
     
-    init_logging(config=CONFIG)
-
     ignore_logging_modules = ['bleson']
     for i in ignore_logging_modules:
         _l = logging.getLogger(i)
         _l.setLevel(logging.ERROR)
 
-    log_level = getattr(logging, args.loglevel)
-    LOG.setLevel(log_level)
+    logging_level = logging.get_log_level(args.loglevel)
+    logging.set_log_level(logging_level)
 
     ble = BLERadio()
     try:

@@ -4,8 +4,8 @@ from typing import Dict, Any
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from data import devices as deviceDB
-from database import get_async_db
+from db.devices import Device as deviceDB
+from db import get_async_db
 
 router = APIRouter()
 
