@@ -10,6 +10,7 @@ CONFIG = Config(config_files=["default.json", "api.default.json"], env_prefix="K
 
 # Initialize logging
 logging.init(config=CONFIG, fmt=logging.DEFAULT_LOG_FMT)
+LOGGER = logging.getLogger(__name__)
 
 # Monkey patch to fix FastAPI/Pydantic compatibility issue with reserved keywords
 import inspect
@@ -32,8 +33,10 @@ class PatchedParameter(_original_parameter_class):
 inspect.Parameter = PatchedParameter
 
 import uvicorn
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 
 from lib.json import KegtronProxyJsonEncoder
 from routes import internal, public, rpc, devices
@@ -64,6 +67,24 @@ app.add_middleware(
 
 app.state.config = CONFIG
 
+# Serve static files
+
+DEFAULT_STATIC_DIR = os.path.join(os.getcwd(), "static")
+
+@app.get("/")
+async def serve_home():
+    """Serve the Angular SPA index.html"""
+    static_dir = CONFIG.get("STATIC_FILES_DIR", DEFAULT_STATIC_DIR)
+    index_path = os.path.join(static_dir, "index.html")
+    if os.path.exists(index_path):
+        return FileResponse(index_path)
+    LOGGER.debug("Static index.html file path: %s", index_path)
+    raise HTTPException(status_code=500, detail="Static files not found")
+
+@app.get("/home")
+async def serve_home_alt():
+    return await serve_home()
+
 app.include_router(internal.router, prefix="/api/internal/v1")
 app.include_router(devices.router, prefix="/api/v1/devices")
 app.include_router(public.router, prefix="/api/v1")
@@ -88,9 +109,8 @@ if __name__ == "__main__":
     host = CONFIG.get("api.host", "localhost")
     port = CONFIG.get("api.port", 8000)
 
-    logger = logging.getLogger(__name__)
-    logger.debug("config: %s", CONFIG.data_flat)
-    logger.info("Serving on %s:%s", host, port)
+    LOGGER.debug("config: %s", CONFIG.data_flat)
+    LOGGER.info("Serving on %s:%s", host, port)
     
     try:
         uvicorn.run(
@@ -98,8 +118,11 @@ if __name__ == "__main__":
             host=host,
             port=port,
             log_level=args.loglevel.lower(),
-            reload=False
+            log_config=None,
+            proxy_headers=True,  # Handle X-Forwarded-* headers (replaces ProxyFix)
+            forwarded_allow_ips=CONFIG.get("api.forwarded_allow_ips", "*"),
+            reload=CONFIG.get("ENV") == "development",
         )
     except KeyboardInterrupt:
-        logger.info("User interrupted - Goodbye")
+        LOGGER.info("User interrupted - Goodbye")
         sys.exit()
