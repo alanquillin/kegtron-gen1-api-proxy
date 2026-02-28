@@ -113,9 +113,11 @@
             let headerInfo = `${deviceId} Port ${portIndex}`;
             
             if (!device.name) {
-                displayName = device.model ? `${device.model} Port ${portIndex}` : `Device Port ${portIndex}`;
+                displayName = `${deviceId} Port ${portIndex}`;
                 if (device.model) {
-                    headerInfo = `${deviceId} Port ${portIndex}`;
+                    headerInfo = `${device.model}`;
+                } else {
+                    headerInfo = 'UNKNOWN MODEL'
                 }
             } else if (device.model) {
                 headerInfo += ` (${device.model})`;

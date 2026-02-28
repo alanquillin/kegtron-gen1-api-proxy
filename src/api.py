@@ -119,9 +119,7 @@ if __name__ == "__main__":
             port=port,
             log_level=args.loglevel.lower(),
             log_config=None,
-            # proxy_headers=True,  # Handle X-Forwarded-* headers (replaces ProxyFix)
-            # forwarded_allow_ips=CONFIG.get("api.forwarded_allow_ips", "*"),
-            # reload=CONFIG.get("ENV") == "development",
+            reload=False,
         )
     except KeyboardInterrupt:
         LOGGER.info("User interrupted - Goodbye")
