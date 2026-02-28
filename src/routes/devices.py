@@ -12,7 +12,7 @@ router = APIRouter()
 @router.get("")
 async def get_devices_int(db: AsyncSession = Depends(get_async_db)) -> Dict[str, Any]:
     devices = await deviceDB.list(db)
-    return {device.id: device.to_dict() for device in devices}
+    return [device.to_dict() for device in devices]
 
 
 @router.get("/{device_id}")

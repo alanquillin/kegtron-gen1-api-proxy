@@ -7,7 +7,7 @@ from lib.config import Config
 from lib import logging
 
 # Initialize configuration
-CONFIG = Config(config_files=["default.json", "scanner.default.json"], env_prefix="KENGTRON_SCANNER")
+CONFIG = Config(config_files=["default.json", "scanner.default.json"], env_prefix="KEGTRON_SCANNER")
 
 # Initialize logging
 logging.init(config=CONFIG, fmt=logging.DEFAULT_LOG_FMT)

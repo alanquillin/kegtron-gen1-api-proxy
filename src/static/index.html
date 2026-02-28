@@ -157,7 +157,8 @@
                     let hasDevices = false;
                     
                     // Iterate through all devices
-                    for (const [deviceId, device] of Object.entries(data)) {
+                    for (const device of data) {
+                        const deviceId = device.id
                         // If device has ports, create a card for each port
                         if (device.ports && Object.keys(device.ports).length > 0) {
                             for (const [portIndex, port] of Object.entries(device.ports)) {

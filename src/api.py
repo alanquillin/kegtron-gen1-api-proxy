@@ -6,7 +6,7 @@ from lib import logging
 from lib.config import Config
 
 # Initialize configuration
-CONFIG = Config(config_files=["default.json", "api.default.json"], env_prefix="KENGTRON_PROXY")
+CONFIG = Config(config_files=["default.json", "api.default.json"], env_prefix="KEGTRON_PROXY")
 
 # Initialize logging
 logging.init(config=CONFIG, fmt=logging.DEFAULT_LOG_FMT)
@@ -119,9 +119,9 @@ if __name__ == "__main__":
             port=port,
             log_level=args.loglevel.lower(),
             log_config=None,
-            proxy_headers=True,  # Handle X-Forwarded-* headers (replaces ProxyFix)
-            forwarded_allow_ips=CONFIG.get("api.forwarded_allow_ips", "*"),
-            reload=CONFIG.get("ENV") == "development",
+            # proxy_headers=True,  # Handle X-Forwarded-* headers (replaces ProxyFix)
+            # forwarded_allow_ips=CONFIG.get("api.forwarded_allow_ips", "*"),
+            # reload=CONFIG.get("ENV") == "development",
         )
     except KeyboardInterrupt:
         LOGGER.info("User interrupted - Goodbye")
