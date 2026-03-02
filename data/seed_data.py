@@ -10,7 +10,7 @@ import asyncio
 import sys
 import os
 import random
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from lib import logging
 from lib.config import Config
@@ -59,7 +59,7 @@ def generate_device_data():
             "model": "KT-200",
             "port_cnt": 2,
             "rssi": random.randint(-70, -40),
-            "last_advertisement_timestamp_utc": datetime.utcnow() - timedelta(minutes=random.randint(0, 60)),
+            "last_advertisement_timestamp_utc": datetime.now(timezone.utc) - timedelta(minutes=random.randint(0, 60)),
             "ports": []
         }
         
@@ -72,7 +72,8 @@ def generate_device_data():
             "volume_dispensed": port_0_total,
             "start_volume": 15500,
             "pulse_count": int(port_0_total * 1000),  # Approximate pulse count
-            "display_unit": "gal" if i % 2 == 0 else "ml"
+            "display_unit": "gal" if i % 2 == 0 else "ml",
+            "last_update_timestamp_utc": datetime.now(timezone.utc)
         })
         
         # Port 1 - Secondary keg (sixth barrel - 5.16 gallons)
@@ -84,7 +85,8 @@ def generate_device_data():
             "volume_dispensed": port_1_total,
             "start_volume": 5160,
             "pulse_count": int(port_1_total * 1000),
-            "display_unit": "gal" if i % 2 == 0 else "ml"
+            "display_unit": "gal" if i % 2 == 0 else "ml",
+            "last_update_timestamp_utc": datetime.now(timezone.utc)
         })
         
         devices.append(device)
@@ -96,7 +98,7 @@ def generate_device_data():
         "model": "KT-100",
         "port_cnt": 1,
         "rssi": random.randint(-65, -45),
-        "last_advertisement_timestamp_utc": datetime.utcnow() - timedelta(minutes=random.randint(0, 30)),
+        "last_advertisement_timestamp_utc": datetime.now(timezone.utc) - timedelta(minutes=random.randint(0, 30)),
         "ports": []
     }
     
@@ -108,7 +110,8 @@ def generate_device_data():
         "volume_dispensed": port_total,
         "start_volume": 13200,
         "pulse_count": int(port_total * 1000),
-        "display_unit": "L"
+        "display_unit": "L",
+        "last_update_timestamp_utc": datetime.now(timezone.utc)
     })
     
     devices.append(kt100_device)

@@ -1,5 +1,6 @@
 from db.devices import Device
 from lib.units import from_ml
+from lib.util import dict_to_camel_case
 
 def transform_device(device: Device):
     device_dict = device.to_dict()
@@ -17,4 +18,4 @@ def transform_device(device: Device):
                 ports[i] = port_dict
         device_dict["ports"] = ports
 
-    return device_dict
+    return dict_to_camel_case(device_dict)

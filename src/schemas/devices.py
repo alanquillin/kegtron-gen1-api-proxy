@@ -1,10 +1,10 @@
 from typing import Dict, Any
 from pydantic import BaseModel, Field
 
-from schemas.base import CamelCaseModel
+from schemas import CamelCaseModel
 
 
-class DeviceBase(BaseModel):
+class DeviceBase(CamelCaseModel):
     mac: str = Field(None, description="Device MAC address")
     name: str = Field(None, description="Device name")
     model: str = Field(None, description="Device model")

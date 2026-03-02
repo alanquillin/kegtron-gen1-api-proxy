@@ -2,6 +2,7 @@ import random
 import re
 import string
 from logging import getLogger
+from typing import Any, Dict, List, Union
 from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
 from uuid import UUID
 
@@ -13,22 +14,22 @@ LOGGER = getLogger(__name__)
 _camel_to_snake_re = re.compile(r"(?<!^)(?=[A-Z])")
 
 
-def camel_to_snake(camel_str):
+def camel_to_snake(camel_str: str) -> str:
     return _camel_to_snake_re.sub("_", camel_str).lower()
 
 
-def snake_to_camel(in_str):
+def snake_to_camel(in_str: str) -> str:
     return "".join([element.title() if index > 0 else element.lower() for index, element in enumerate(in_str.split("_"))])
 
 
-def random_string(length):
+def random_string(length: int) -> str:
 
     """Return a random string of a certain length."""
 
     return "".join(random.SystemRandom().choice(string.ascii_uppercase + string.ascii_lowercase + string.digits) for _ in range(length))
 
 
-def flatten_dict(data, parent_name="", sep=".", key_converter=None, skip_key_check=None):
+def flatten_dict(data: dict, parent_name: str = "", sep: str = ".", key_converter: callable = None, skip_key_check: callable = None) -> dict:
 
     """
     Flattens a dictionary to a single layer with child keys separated by `sep` charactor
@@ -68,16 +69,11 @@ def flatten_dict(data, parent_name="", sep=".", key_converter=None, skip_key_che
     return flattened
 
 
-def extract_email_domain(email):
-    _, domain_name = email.rsplit("@", 1)  # user portions can have "@" in them but domains can't
-    return domain_name
-
-
-def str_to_bool(in_str):
+def str_to_bool(in_str: str) -> bool:
     return in_str.lower() in ["true", "t", "yes", "y", "1"]
 
 
-def dt_str_now():
+def dt_str_now() -> str:
     return utcnow_aware().isoformat()
 
 
@@ -97,10 +93,44 @@ def get_query_string_params_from_url(url):
     return parse_qs(parsed_url.query)
 
 
-def is_valid_uuid(uuid_to_test, version=4):
+def is_valid_uuid(uuid_to_test, version=4) -> bool:
     try:
         uuid_obj = UUID(uuid_to_test, version=version)
     except ValueError:
         return False
 
     return str(uuid_obj) == uuid_to_test
+
+def dict_to_camel_case(data: Union[Dict, List, Any], skip_none: bool = True) -> Union[Dict, List, Any]:
+    """
+    Recursively transform dict keys from snake_case to camelCase.
+    Optionally removes None values from the output.
+    """
+    if data is None:
+        return None
+
+    if isinstance(data, dict):
+        transformed = {}
+        for key, val in data.items():
+            # Skip None values
+            if val is None and skip_none == True:
+                continue
+
+            # Convert key to camelCase
+            camel_key = snake_to_camel(key) if "_" in key else key
+
+            # Recursively transform nested structures
+            if isinstance(val, dict):
+                val = dict_to_camel_case(val)
+            elif isinstance(val, list):
+                val = [dict_to_camel_case(v) if isinstance(v, (dict, list)) else v for v in val]
+
+            transformed[camel_key] = val
+
+        return transformed
+
+    elif isinstance(data, list):
+        return [dict_to_camel_case(item) if isinstance(item, (dict, list)) else item for item in data]
+
+    else:
+        return data

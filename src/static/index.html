@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kegtron Dashboard</title>
+    <title>Kegtron Gen1 - Device Dashboard</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://fonts.googleapis.com" />
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
@@ -67,7 +67,7 @@
 </head>
 <body>
     <div class="container">
-        <h1 class="text-center mb-4">Kegtron Dashboard</h1>
+        <h1 class="text-center mb-4">Kegtron Gen1 - Device Dashboard</h1>
         <div id="loading" class="loading">
             <div class="spinner-border text-primary" role="status">
                 <span class="visually-hidden">Loading...</span>
@@ -108,11 +108,11 @@
         }
 
         function createDeviceCard(deviceId, device, port) {
-            const portIndex = port.port_index;
-            const volumeLeft = calculateVolumeLeft(port.start_volume, port.volume_dispensed);
-            const percentLeft = calculatePercentLeft(port.keg_size, volumeLeft);
+            const portIndex = port.portIndex;
+            const volumeLeft = calculateVolumeLeft(port.startVolume, port.volumeDispensed);
+            const percentLeft = calculatePercentLeft(port.kegSize, volumeLeft);
             const volumeClass = getVolumeClass(percentLeft);
-            const displayUnit = port.display_unit
+            const displayUnit = port.displayUnit
             
             let model = 'UNKNOWN MODEL'
             if (device.model) {
@@ -120,17 +120,17 @@
             }
 
             // Determine the display name
-            let displayName = `${device.name} (${port.port_name})`;
+            let displayName = `${device.name} (${port.portName})`;
             let headerInfo = `${deviceId} - Port ${portIndex} (${model})`;
             
             if (!device.name) {
-                displayName = `${deviceId} - ${port.port_name}`;
+                displayName = `${deviceId} - ${port.portName}`;
                 headerInfo = `Port ${portIndex} (${model})`;
-                if (!port.port_name) {
+                if (!port.portName) {
                     displayName = `${deviceId} - Port ${portIndex}`;
                     headerInfo = `${model}`;
                 }
-            } else if (!port.port_name) {
+            } else if (!port.portName) {
                 displayName = `${device.name} - Port (${portIndex})`;
                 headerInfo = `${deviceId} (${model})`;
             }
@@ -139,7 +139,7 @@
                 `${volumeLeft} ${displayUnit} (${percentLeft} %)` : 
                 'No data';
 
-            const updateTime = port.updated_at || device.updated_at || device.last_advertisement_timestamp_utc;
+            const updateTime = port.lastUpdateTimestampUtc || device.lastAdvertisementTimestampUtc;
 
             return `
                 <div class="col-md-6 col-lg-4">
@@ -182,11 +182,11 @@
                         } else {
                             // If no ports, create a single card for the device
                             const dummyPort = {
-                                port_index: 0,
-                                keg_size: null,
-                                volume_dispensed: null,
-                                start_volume: null,
-                                updated_at: null
+                                portIndex: 0,
+                                kegSize: null,
+                                volumeDispensed: null,
+                                startVolume: null,
+                                updatedAt: null
                             };
                             devicesContainer.append(createDeviceCard(deviceId, device, dummyPort));
                             hasDevices = true;

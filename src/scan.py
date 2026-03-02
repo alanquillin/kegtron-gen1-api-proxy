@@ -6,6 +6,7 @@ import sys
 
 from lib.config import Config
 from lib import logging
+from lib.util import dict_to_camel_case
 
 # Initialize configuration
 CONFIG = Config(config_files=["default.json", "scanner.default.json"], env_prefix="KEGTRON_SCANNER")
@@ -51,7 +52,7 @@ async def add_new_dev(addr: str, name: str, adv_data: AdvertisementData, parsed_
         "id": name_to_id(name), 
         "rssi": adv_data.rssi, 
         "model": parsed_data.get("model"),
-        "port_cnt": parsed_data.get("port_cnt"),
+        "portCnt": parsed_data.get("port_cnt"),
         "ports": {}
     }
     if await save_device(data):
@@ -113,9 +114,11 @@ async def update_device(data: dict, port_data: dict, port_data_raw: bytes):
     else:
         LOGGER.info(f'Update window exceeded for {data["id"]} on port {port_index}, updating the proxy.  Last update: {old_port_updated.isoformat()}')
 
-    LOGGER.debug(f'Updating device "{data.get("name")}" on proxy.  Device data: {data}')
+    data["last_update_timestamp_utc'"] = utcnow_aware()
+    transformed_data = dict_to_camel_case(data)
+    LOGGER.debug(f'Updating device "{data.get("name")}" on proxy.  Device data: {transformed_data}')
     async with AsyncClient() as client:
-        r = await client.patch(f'{proxy_url_prefix}/devices/{data.get("id")}', json=to_json(data))
+        r = await client.patch(f'{proxy_url_prefix}/devices/{data.get("id")}', json=to_json(transformed_data))
         if r.status_code != 200:
             LOGGER.error(f'Failed to update device data. Status Code: {r.status_code}, Message: {r.text}')
         else:
