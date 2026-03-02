@@ -8,7 +8,9 @@
     "path": "kegtron_proxy.db"
   },
   "logging": {
+    "level": "DEBUG",
     "colored": true,
     "json": false
-  }
+  },
+  "default_display_unit": "gal"
 }

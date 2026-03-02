@@ -33,7 +33,8 @@
   },
   "logging": {
     "levels": {
-      "sqlalchemy.engine": "INFO"
+      "sqlalchemy.engine": "WARNING",
+      "aiosqlite": "INFO"
     }
   }
 }

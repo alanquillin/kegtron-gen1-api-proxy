@@ -1,11 +1,11 @@
 import os
 from typing import AsyncGenerator, Dict, Any, Optional, List, Type, TypeVar
 
-from sqlalchemy import create_engine, select, update, delete
+from sqlalchemy import create_engine, select, func
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
-from sqlalchemy.orm import sessionmaker, Session, selectinload, DeclarativeMeta
+from sqlalchemy.inspection import inspect
+from sqlalchemy.orm import sessionmaker, ColumnProperty
 from sqlalchemy.ext.declarative import declarative_base
-from contextlib import contextmanager
 
 from lib import logging
 from lib.config import Config
@@ -53,15 +53,7 @@ AsyncSessionLocal = sessionmaker(
     expire_on_commit=False
 )
 
-
-@contextmanager
-def get_db():
-    """Sync database session context manager"""
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+Base = declarative_base()
 
 
 async def get_async_db() -> AsyncGenerator[AsyncSession, None]:
@@ -69,26 +61,24 @@ async def get_async_db() -> AsyncGenerator[AsyncSession, None]:
     async with AsyncSessionLocal() as session:
         yield session
 
-
-async def init_db():
-    """Initialize database tables"""
-    
-    # For async SQLite, we need to use run_sync
-    async with async_engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-
-
-def init_db_sync():
-    """Initialize database tables synchronously"""
-    Base.metadata.create_all(bind=engine)
-
-Base = declarative_base()
+def _get_column_value(instance, col_name):
+    try:
+        return getattr(instance, col_name)
+    except AttributeError:
+        for attr, column in inspect(instance.__class__).c.items():
+            if column.name == col_name:
+                return getattr(instance, attr)
+    raise AttributeError
 
 T = TypeVar('T', bound='CRUDMixin')
-
-
 class CRUDMixin:
     """Mixin class providing CRUD operations for SQLAlchemy models"""
+    
+    @classmethod
+    async def count_all(cls: Type[T], db: AsyncSession):
+        count_statement = select(func.count()).select_from(cls)
+        result = await db.execute(count_statement)
+        return result.scalar_one()
     
     @classmethod
     async def list(cls, db: AsyncSession) -> List[T]:
@@ -104,6 +94,13 @@ class CRUDMixin:
                 query = query.options(option)
         result = await db.execute(query)
         return result.scalar_one_or_none()
+    
+    @classmethod
+    async def query(cls: Type[T], db: AsyncSession, **kwargs):
+        q = select(cls).filter_by(**kwargs)
+
+        result = await db.execute(q)
+        return result.unique().scalars().all()
     
     @classmethod
     async def get_multi(
@@ -128,28 +125,44 @@ class CRUDMixin:
         return result.scalars().all()
         
     @classmethod
-    async def create(cls: Type[T], db: AsyncSession, **kwargs) -> T:
+    async def create(cls: Type[T], db: AsyncSession, autocommit=True, **kwargs) -> T:
         """Create a new record (async)"""
         db_obj = cls(**kwargs)
         db.add(db_obj)
-        await db.commit()
-        await db.refresh(db_obj)
+        if autocommit:
+            try:
+                await db.commit()
+                await db.refresh(db_obj)
+            except Exception:
+                await db.rollback()
+                raise
+        
         return db_obj
     
-    async def update(self: T, db: AsyncSession, **kwargs) -> T:
+    async def update(self: T, db: AsyncSession, autocommit=True, **kwargs) -> T:
         """Update an existing record (async)"""
         for key, value in kwargs.items():
             if hasattr(self, key):
                 setattr(self, key, value)
         db.add(self)
-        await db.commit()
-        await db.refresh(self)
+        if autocommit:
+            try:
+                await db.commit()
+                await db.refresh(self)
+            except Exception:
+                await db.rollback()
+                raise
         return self
     
-    async def delete(self: T, db: AsyncSession) -> bool:
+    async def delete(self: T, db: AsyncSession, autocommit=True) -> bool:
         """Delete a record (async)"""
         await db.delete(self)
-        await db.commit()
+        if autocommit:
+            try:
+                await db.commit()
+            except Exception:
+                await db.rollback()
+                raise
         return True
     
     @classmethod
@@ -157,67 +170,34 @@ class CRUDMixin:
         """Check if a record exists by ID (async)"""
         result = await db.execute(select(cls.id).where(cls.id == id))
         return result.scalar_one_or_none() is not None
-    
-    # Synchronous versions for backward compatibility
-    @classmethod
-    def get_sync(cls: Type[T], id: Any, db: Session, options: list = None) -> Optional[T]:
-        """Get a single record by ID (sync)"""
-        query = db.query(cls)
-        if options:
-            for option in options:
-                query = query.options(option)
-        return query.filter(cls.id == id).first()
-    
-    @classmethod
-    def get_multi_sync(
-        cls: Type[T], 
-        db: Session, 
-        *, 
-        skip: int = 0, 
-        limit: int = 100,
-        filters: list = None,
-        options: list = None
-    ) -> List[T]:
-        """Get multiple records (sync)"""
-        query = db.query(cls)
-        if filters:
-            for f in filters:
-                query = query.filter(f)
-        if options:
-            for option in options:
-                query = query.options(option)
-        return query.offset(skip).limit(limit).all()
-    
-    @classmethod
-    def create_sync(cls: Type[T], db: Session, **kwargs) -> T:
-        """Create a new record (sync)"""
-        db_obj = cls(**kwargs)
-        db.add(db_obj)
-        db.commit()
-        db.refresh(db_obj)
-        return db_obj
-    
-    def update_sync(self: T, db: Session, **kwargs) -> T:
-        """Update an existing record (sync)"""
-        for key, value in kwargs.items():
-            if hasattr(self, key):
-                setattr(self, key, value)
-        db.add(self)
-        db.commit()
-        db.refresh(self)
-        return self
-    
-    def delete_sync(self: T, db: Session) -> bool:
-        """Delete a record (sync)"""
-        db.delete(self)
-        db.commit()
-        return True
-    
-    @classmethod
-    def exists_sync(cls: Type[T], id: Any, db: Session) -> bool:
-        """Check if a record exists by ID (sync)"""
-        return db.query(cls.id).filter(cls.id == id).first() is not None
-    
-    def to_dict(self) -> Dict[str, Any]:
-        """Convert model to dictionary - should be overridden by subclasses"""
-        return {c.name: getattr(self, c.name) for c in self.__table__.columns}
+
+class DictifiableMixin:
+    def to_dict(self, include_relationships=None, ignore_properties=None):
+        result = {}
+
+        if not ignore_properties:
+            ignore_properties = []
+
+        for name, attr in inspect(self.__class__).all_orm_descriptors.items():
+            if name in ignore_properties:
+                continue
+            if name.startswith("_"):
+                continue
+            if hasattr(attr, "property") and not isinstance(attr.property, ColumnProperty):
+                continue
+
+            name = getattr(attr, "name", name)
+            result[name] = _get_column_value(self, name)
+
+        if not include_relationships:
+            include_relationships = []
+
+        for rel in include_relationships:
+            val = getattr(self, rel)
+            if val is not None:
+                result[rel] = getattr(self, rel).to_dict()
+
+        return result
+
+    def _json_repr_(self, *args, **kwargs):
+        return self.to_dict(*args, **kwargs)

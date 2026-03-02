@@ -43,23 +43,22 @@ endif
 # dependency targets
 
 depends: 
-	$(POETRY_VARS) $(POETRY) install --no-root && \
-	$(POETRY_VARS) $(POETRY) run pip install "flask[async]" && \
-	$(POETRY_VARS) $(POETRY) run pip install -U bleak
+	$(POETRY_VARS) $(POETRY) install --no-root
 	
 
 update-depends:
-	$(POETRY_VARS) $(POETRY) update && \
-	$(POETRY_VARS) $(POETRY) run pip install -U "flask[async]" && \
-	$(POETRY_VARS) $(POETRY) run pip install -U bleak
+	$(POETRY_VARS) $(POETRY) update
 
 # Targets for running the app
 
-run-dev-local:
-	$(PYTHON) src/seed_data.py && \
+seed_data: export PYTHONPATH=$(CURDIR)/src:$PYTHONPATH
+seed_data:
+	$(PYTHON) data/seed_data.py
+
+run-dev-local: run-db-migrations seed_data
 	$(PYTHON) src/api.py --log DEBUG
 
-run-local:
+run-local: run-db-migrations
 	$(PYTHON) src/api.py
 
 scan:
@@ -85,4 +84,7 @@ format:
 # Migrations
 
 create-migration: 
-	alembic revision --autogenerate -m @1
+	$(ALEMBIC) revision --autogenerate -m @1
+
+run-db-migrations:
+	$(ALEMBIC) upgrade head

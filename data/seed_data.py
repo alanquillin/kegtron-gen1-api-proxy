@@ -6,6 +6,7 @@ Creates:
 - 1 device with KT-100 model (1 port)
 """
 
+import asyncio
 import sys
 import os
 import random
@@ -16,7 +17,7 @@ from lib.config import Config
 
 CONFIG = Config(config_files=["default.json", "api.default.json"], env_prefix="KEGTRON_PROXY")
 logging.init(config=CONFIG)
-LOGGER = logging.getLogger(__name__)
+LOGGER = logging.getLogger("db_seed")
 
 # Get the project root directory
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -29,12 +30,9 @@ sys.path.insert(0, SRC_DIR)
 os.chdir(SRC_DIR)
 
 
-from db import init_db_sync, SessionLocal
+from db import AsyncSessionLocal
 from db.devices import Device
 from db.ports import Port
-
-# Initialize configuration and logging
-
 
 
 def generate_mac_address():
@@ -66,23 +64,27 @@ def generate_device_data():
         }
         
         # Port 0 - Main keg (half barrel - 15.5 gallons)
-        port_0_total = round(random.uniform(0.5, 15.0), 2)
+        port_0_total = round(random.uniform(50, 15000), 2)
         device["ports"].append({
+            "port_name": "Left" if i % 2 == 0 else None,
             "port_index": 0,
-            "keg_size": 15.5,  # Half barrel in gallons
-            "total_volume": port_0_total,
-            "start_volume": 15.5,
-            "pulse_count": int(port_0_total * 1000)  # Approximate pulse count
+            "keg_size": 15500,  # Half barrel in gallons
+            "volume_dispensed": port_0_total,
+            "start_volume": 15500,
+            "pulse_count": int(port_0_total * 1000),  # Approximate pulse count
+            "display_unit": "gal" if i % 2 == 0 else "ml"
         })
         
         # Port 1 - Secondary keg (sixth barrel - 5.16 gallons)
-        port_1_total = round(random.uniform(0.2, 5.0), 2)
+        port_1_total = round(random.uniform(20, 5000), 2)
         device["ports"].append({
+            "port_name": "Right" if i % 2 == 0 else None,
             "port_index": 1,
-            "keg_size": 5.16,  # Sixth barrel in gallons
-            "total_volume": port_1_total,
-            "start_volume": 5.16,
-            "pulse_count": int(port_1_total * 1000)
+            "keg_size": 5160,  # Sixth barrel in gallons
+            "volume_dispensed": port_1_total,
+            "start_volume": 5160,
+            "pulse_count": int(port_1_total * 1000),
+            "display_unit": "gal" if i % 2 == 0 else "ml"
         })
         
         devices.append(device)
@@ -99,13 +101,14 @@ def generate_device_data():
     }
     
     # Single port - Mini keg (1.32 gallons / 5 liters)
-    port_total = round(random.uniform(0.1, 1.2), 2)
+    port_total = round(random.uniform(10, 12000), 2)
     kt100_device["ports"].append({
         "port_index": 0,
-        "keg_size": 1.32,  # Mini keg
-        "total_volume": port_total,
-        "start_volume": 1.32,
-        "pulse_count": int(port_total * 1000)
+        "keg_size": 13200,  # Mini keg
+        "volume_dispensed": port_total,
+        "start_volume": 13200,
+        "pulse_count": int(port_total * 1000),
+        "display_unit": "L"
     })
     
     devices.append(kt100_device)
@@ -113,20 +116,18 @@ def generate_device_data():
     return devices
 
 
-def seed_database():
+async def seed_database():
     """Seed the database with sample data"""
     LOGGER.info("Starting database seeding...")
-    
-    # Initialize database tables
-    init_db_sync()
+
     
     # Generate device data
     devices_data = generate_device_data()
     
     # Create database session
-    with SessionLocal() as db:
+    async with AsyncSessionLocal() as db:
         # Check if database already has data
-        existing_count = db.query(Device).count()
+        existing_count = await Device.count_all(db)
         if existing_count > 0:
             LOGGER.warning(f"Database already contains {existing_count} devices. Skipping seed to avoid duplicates.")
             user_input = input("Do you want to continue and add more devices? (y/N): ")
@@ -141,51 +142,46 @@ def seed_database():
                 ports_data = device_data.pop("ports", [])
                 
                 # Create device
-                device = Device(**device_data)
-                db.add(device)
-                db.flush()  # Flush to get the device ID
+                device = await Device.create(db, **device_data)
+                await db.refresh(device)  # Flush to get the device ID
                 
                 # Create ports
                 for port_data in ports_data:
-                    port = Port(
-                        device_id=device.id,
-                        **port_data
-                    )
-                    db.add(port)
+                    await Port.create(db, device_id=device.id, **port_data)
                 
                 LOGGER.info(f"Created device: {device.name} ({device.id}) with {len(ports_data)} port(s)")
                 
             except Exception as e:
                 LOGGER.error(f"Error creating device {device_data.get('id')}: {e}")
-                db.rollback()
+                await db.rollback()
                 raise
         
         # Commit all changes
-        db.commit()
+        await db.commit()
         LOGGER.info(f"Successfully seeded {len(devices_data)} devices")
     
     # Display summary
-    with SessionLocal() as db:
-        total_devices = db.query(Device).count()
-        total_ports = db.query(Port).count()
+    async with AsyncSessionLocal() as db:
+        total_devices = await Device.count_all(db)
+        total_ports = await Port.count_all(db)
         LOGGER.info(f"Database now contains {total_devices} devices with {total_ports} total ports")
         
         # Show sample data
-        LOGGER.info("\nSample device data:")
-        devices = db.query(Device).limit(5).all()
+        LOGGER.info("Sample device data:")
+        devices = await Device.query(db)
         for device in devices:
-            ports_info = db.query(Port).filter(Port.device_id == device.id).all()
-            port_summary = ", ".join([f"Port {p.port_index}: {p.start_volume - p.total_volume:.1f}gal left" 
+            ports_info = await Port.query(db, device_id=device.id)
+            port_summary = ", ".join([f"Port {p.port_index}: {p.start_volume - p.volume_dispensed:.1f}gal left" 
                                      for p in ports_info])
             LOGGER.info(f"  {device.name or device.model} ({device.id}): {port_summary}")
 
 
 if __name__ == "__main__":
     try:
-        seed_database()
+        asyncio.run(seed_database())
     except KeyboardInterrupt:
         LOGGER.info("Seeding interrupted by user")
         sys.exit(1)
     except Exception as e:
-        LOGGER.error(f"Seeding failed: {e}")
+        LOGGER.error(f"Seeding failed: {e}", exc_info=True)
         sys.exit(1)
