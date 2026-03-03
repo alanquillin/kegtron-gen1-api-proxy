@@ -100,11 +100,34 @@
             padding: 50px;
             color: #dc3545;
         }
+        #refreshStatus {
+            font-weight: 600;
+            color: #28a745;
+        }
+        #refreshStatus.off {
+            color: #6c757d;
+        }
+        .form-check-input:checked {
+            background-color: #28a745;
+            border-color: #28a745;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <h1 class="text-center mb-4">Kegtron Gen1 - Device Dashboard</h1>
+        <div class="text-center mb-3">
+            <div class="form-check form-switch d-inline-block">
+                <input class="form-check-input" type="checkbox" id="autoRefreshToggle" checked>
+                <label class="form-check-label" for="autoRefreshToggle">
+                    Auto Refresh: <span id="refreshStatus">ON</span>
+                </label>
+            </div>
+            <small class="text-muted ms-3">Refreshes every 10 seconds</small>
+            <button class="btn btn-sm btn-primary ms-3" onclick="manualRefresh()">
+                <span id="refreshBtnText">Refresh Now</span>
+            </button>
+        </div>
         <div id="loading" class="loading">
             <div class="spinner-border text-primary" role="status">
                 <span class="visually-hidden">Loading...</span>
@@ -309,10 +332,62 @@
             });
         }
 
-        $(document).ready(function() {
+        let refreshInterval = null;
+        let autoRefreshEnabled = true;
+
+        function startAutoRefresh() {
+            if (refreshInterval) {
+                clearInterval(refreshInterval);
+            }
+            refreshInterval = setInterval(loadDevices, 10000);
+        }
+
+        function stopAutoRefresh() {
+            if (refreshInterval) {
+                clearInterval(refreshInterval);
+                refreshInterval = null;
+            }
+        }
+
+        function toggleAutoRefresh() {
+            const toggle = document.getElementById('autoRefreshToggle');
+            const status = document.getElementById('refreshStatus');
+            
+            autoRefreshEnabled = toggle.checked;
+            
+            if (autoRefreshEnabled) {
+                status.textContent = 'ON';
+                status.classList.remove('off');
+                startAutoRefresh();
+                console.log('Auto-refresh enabled');
+            } else {
+                status.textContent = 'OFF';
+                status.classList.add('off');
+                stopAutoRefresh();
+                console.log('Auto-refresh disabled');
+            }
+        }
+
+        function manualRefresh() {
+            const button = document.getElementById('refreshBtnText');
+            button.textContent = 'Refreshing...';
             loadDevices();
-            // Refresh every 10 seconds
-            setInterval(loadDevices, 10000);
+            setTimeout(() => {
+                button.textContent = 'Refresh Now';
+            }, 500);
+        }
+
+        $(document).ready(function() {
+            // Load devices initially
+            loadDevices();
+            
+            // Set up auto-refresh toggle
+            document.getElementById('autoRefreshToggle').addEventListener('change', toggleAutoRefresh);
+            
+            // Start auto-refresh if enabled (default)
+            if (autoRefreshEnabled) {
+                startAutoRefresh();
+            }
         });
     </script>
 </body>
