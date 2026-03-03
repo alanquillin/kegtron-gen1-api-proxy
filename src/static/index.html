@@ -14,13 +14,17 @@
         }
         .device-card {
             margin-bottom: 20px;
-            height: 200px;
+            min-height: 200px;
             position: relative;
+            transition: all 0.3s ease;
         }
         .device-card .card-body {
             display: flex;
             flex-direction: column;
             justify-content: space-between;
+        }
+        .device-card.expanded {
+            min-height: 320px;
         }
         .device-header {
             font-size: 0.9rem;
@@ -53,6 +57,39 @@
             position: absolute;
             bottom: 10px;
             left: 15px;
+        }
+        .details-toggle {
+            font-size: 0.8rem;
+            color: #007bff;
+            cursor: pointer;
+            position: absolute;
+            bottom: 10px;
+            right: 15px;
+            user-select: none;
+        }
+        .details-toggle:hover {
+            color: #0056b3;
+            text-decoration: underline;
+        }
+        .device-details {
+            display: none;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #dee2e6;
+            font-size: 0.9rem;
+        }
+        .device-details.show {
+            display: block;
+        }
+        .detail-row {
+            margin-bottom: 5px;
+        }
+        .detail-label {
+            font-weight: 600;
+            color: #495057;
+        }
+        .detail-value {
+            color: #6c757d;
         }
         .loading {
             text-align: center;
@@ -112,7 +149,7 @@
             const volumeLeft = calculateVolumeLeft(port.startVolume, port.volumeDispensed);
             const percentLeft = calculatePercentLeft(port.kegSize, volumeLeft);
             const volumeClass = getVolumeClass(percentLeft);
-            const displayUnit = port.displayUnit
+            const displayUnit = port.displayUnit || 'mL';
             
             let model = 'UNKNOWN MODEL'
             if (device.model) {
@@ -140,10 +177,13 @@
                 'No data';
 
             const updateTime = port.lastUpdateTimestampUtc || device.lastAdvertisementTimestampUtc;
+            
+            // Generate unique card ID
+            const cardId = `card-${deviceId}-${portIndex}`.replace(/[^a-zA-Z0-9-]/g, '-');
 
             return `
                 <div class="col-md-6 col-lg-4">
-                    <div class="card device-card">
+                    <div class="card device-card" id="${cardId}">
                         <div class="card-body">
                             <div class="device-header">${headerInfo}</div>
                             <div class="device-name">
@@ -153,10 +193,73 @@
                             <div class="update-time">
                                 Updated: ${formatDateTime(updateTime)}
                             </div>
+                            <div class="details-toggle" onclick="toggleDetails('${cardId}')">
+                                more details
+                            </div>
+                            <div class="device-details" id="${cardId}-details">
+                                <div class="detail-row">
+                                    <span class="detail-label">Device ID:</span>
+                                    <span class="detail-value">${deviceId}</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span class="detail-label">MAC Address:</span>
+                                    <span class="detail-value">${device.mac || 'N/A'}</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span class="detail-label">Port Index:</span>
+                                    <span class="detail-value">${portIndex}</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span class="detail-label">Port Name:</span>
+                                    <span class="detail-value">${port.portName || 'Not Set'}</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span class="detail-label">Keg Size:</span>
+                                    <span class="detail-value">${port.kegSize != null ? `${port.kegSize} ${displayUnit}` : 'N/A'}</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span class="detail-label">Start Volume:</span>
+                                    <span class="detail-value">${port.startVolume != null ? `${port.startVolume} ${displayUnit}` : 'N/A'}</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span class="detail-label">Volume Dispensed:</span>
+                                    <span class="detail-value">${port.volumeDispensed != null ? `${port.volumeDispensed} ${displayUnit}` : 'N/A'}</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span class="detail-label">Signal Strength:</span>
+                                    <span class="detail-value">${device.rssi != null ? `${device.rssi} dBm` : 'N/A'}</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span class="detail-label">Port Count:</span>
+                                    <span class="detail-value">${device.portCnt || 'N/A'}</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span class="detail-label">Pulse Count:</span>
+                                    <span class="detail-value">${port.pulseCount || 'N/A'}</span>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
             `;
+        }
+
+        function toggleDetails(cardId) {
+            const card = document.getElementById(cardId);
+            const details = document.getElementById(`${cardId}-details`);
+            const toggle = card.querySelector('.details-toggle');
+            
+            if (details.classList.contains('show')) {
+                // Hide details
+                details.classList.remove('show');
+                card.classList.remove('expanded');
+                toggle.textContent = 'more details';
+            } else {
+                // Show details
+                details.classList.add('show');
+                card.classList.add('expanded');
+                toggle.textContent = 'less details';
+            }
         }
 
         function loadDevices() {
