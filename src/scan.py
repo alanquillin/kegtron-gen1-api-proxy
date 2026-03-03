@@ -53,6 +53,7 @@ async def add_new_dev(addr: str, name: str, adv_data: AdvertisementData, parsed_
         "rssi": adv_data.rssi, 
         "model": parsed_data.get("model"),
         "portCnt": parsed_data.get("port_cnt"),
+        "lastAdvertisementTimestampUtc": utcnow_aware(),
         "ports": {}
     }
     if await save_device(data):
