@@ -57,60 +57,9 @@ class Device(Base, CRUDMixin, DictifiableMixin):
             if isinstance(timestamp, str):
                 kwargs['last_advertisement_timestamp_utc'] = parse_datetime(timestamp)
         return await super().update(db, autocommit=autocommit, **kwargs)
-    
-    # async def update_with_ports(self, db, update_data: Dict[str, Any]):
-    #     """Update device and its ports"""
-    #     from dateutil.parser import parse as parse_datetime
-        
-    #     # Extract port data if present
-    #     ports_data = update_data.pop('ports', None)
-        
-    #     # Handle timestamp
-    #     if 'last_advertisement_timestamp_utc' in update_data:
-    #         timestamp = update_data['last_advertisement_timestamp_utc']
-    #         if isinstance(timestamp, str):
-    #             update_data['last_advertisement_timestamp_utc'] = parse_datetime(timestamp)
-        
-    #     # Update device fields
-    #     await self.update(db, **update_data)
-        
-    #     # Update or create ports
-    #     if ports_data:
-    #         existing_ports = {port.port_index: port for port in self.ports}
-            
-    #         for port_index, port_data in ports_data.items():
-    #             port_idx = int(port_index)
-    #             if port_idx in existing_ports:
-    #                 # Update existing port
-    #                 port = existing_ports[port_idx]
-    #                 await port.update(db, **{
-    #                     'keg_size': port_data.get('keg_size', port.keg_size),
-    #                     'total_volume': port_data.get('total_volume', port.total_volume),
-    #                     'start_volume': port_data.get('start_volume', port.start_volume),
-    #                     'pulse_count': port_data.get('pulse_count', port.pulse_count),
-    #                     'data': port_data
-    #                 })
-    #             else:
-    #                 # Create new port
-    #                 port = Port(
-    #                     device_id=self.id,
-    #                     port_index=port_idx,
-    #                     keg_size=port_data.get('keg_size'),
-    #                     total_volume=port_data.get('total_volume'),
-    #                     start_volume=port_data.get('start_volume'),
-    #                     pulse_count=port_data.get('pulse_count'),
-    #                     data=port_data
-    #                 )
-    #                 db.add(port)
-        
-    #     await db.commit()
-    #     await db.refresh(self)
-        
-    #     # Ensure ports are loaded
-    #     from sqlalchemy.orm import selectinload
-    #     from sqlalchemy import select
-    #     stmt = select(Device).where(Device.id == self.id).options(selectinload(Device.ports))
-    #     result = await db.execute(stmt)
-    #     device = result.scalar_one()
-        
-    #     return device
+
+    @classmethod
+    async def mac_exists(cls, mac: Any, db: AsyncSession) -> bool:
+        """Check if a record exists by ID (async)"""
+        result = await db.execute(select(cls.mac).where(cls.mac == mac))
+        return result.scalar_one_or_none() is not None

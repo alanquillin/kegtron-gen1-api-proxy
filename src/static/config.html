@@ -84,6 +84,17 @@
                                 <form id="resetVolumeForm">
                                 
                                 <div class="mb-3">
+                                    <label for="resetVolumeUnit" class="form-label">Unit</label>
+                                    <select class="form-select" id="resetVolumeUnit" style="max-width: 200px;">
+                                        <option value="">-- Use default --</option>
+                                        <option value="gal">Gallons (gal)</option>
+                                        <option value="mL">Milliliters (mL)</option>
+                                        <option value="L">Liters (L)</option>
+                                        <option value="oz">Ounces (oz)</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="mb-3">
                                     <label for="kegSize" class="form-label">Keg Size</label>
                                     <input type="number" class="form-control" id="kegSize" step="0.01" min="0" placeholder="Enter keg size" style="max-width: 200px;">
                                 </div>
@@ -306,8 +317,10 @@
             const port = selectedDevice.ports && selectedDevice.ports[portIndex];
             if (port) {
                 $('#displayUnit').val(port.displayUnit || '');
+                $('#resetVolumeUnit').val(port.displayUnit || '');
             } else {
                 $('#displayUnit').val('');
+                $('#resetVolumeUnit').val('');
             }
             
             // Update details panel
@@ -449,8 +462,9 @@
             if (!selectedDevice || selectedPortIndex === null || !validateResetVolume()) return;
             
             const commandData = {
-                size: parseFloat($('#kegSize').val()),
-                startVolume: parseFloat($('#startingVolume').val())
+                kegSize: parseFloat($('#kegSize').val()),
+                startVolume: parseFloat($('#startingVolume').val()),
+                unit: $('#resetVolumeUnit').val() || 'mL'
             };
             
             $.ajax({

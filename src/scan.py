@@ -14,7 +14,7 @@ CONFIG = Config(config_files=["default.json", "scanner.default.json"], env_prefi
 # Initialize logging
 logging.init(config=CONFIG, fmt=logging.DEFAULT_LOG_FMT)
 
-LOGGER = logging.getLogger("ble_scanner_3")
+LOGGER = logging.getLogger("ble_scanner")
 
 from bleak import BleakScanner
 from bleak.backends.device import BLEDevice
@@ -116,6 +116,7 @@ async def update_device(data: dict, port_data: dict, port_data_raw: bytes):
         LOGGER.info(f'Update window exceeded for {data["id"]} on port {port_index}, updating the proxy.  Last update: {old_port_updated.isoformat()}')
 
     data["last_update_timestamp_utc"] = utcnow_aware()
+    LOGGER.debug("Transforming data: %s", data)
     transformed_data = dict_to_camel_case(data)
     LOGGER.debug(f'Updating device "{data.get("name")}" on proxy.  Device data: {transformed_data}')
     async with AsyncClient() as client:
@@ -160,7 +161,7 @@ async def detection_callback(device: BLEDevice, adv_data: AdvertisementData):
                     parsed_data = parse(raw_data)
                     await proc_kegtron_device(device, adv_data, raw_data, parsed_data)
     except Exception as ex:
-        LOGGER.error(str(ex))
+        LOGGER.error(str(ex), exc_info=True)
 
 async def scan_with_callback():
     LOGGER.info("Scanning started with callback...")
@@ -172,7 +173,7 @@ async def scan_with_callback():
     except asyncio.CancelledError:
         LOGGER.info("Cancel received, shutting down scanner.")
     except Exception as ex:
-        LOGGER.error(str(ex))
+        LOGGER.error(str(ex), exc_info=True)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

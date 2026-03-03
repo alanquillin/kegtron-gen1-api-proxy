@@ -47,7 +47,7 @@ async def get_devices_int(db: AsyncSession = Depends(get_async_db)) -> List[dict
     return [transform_device(device) for device in devices]
 
 
-@router.post("/devices", status_code=201)
+@router.post("", status_code=201)
 async def save_device(device_data: DeviceCreate, db: AsyncSession = Depends(get_async_db)):
     if not device_data.id:
         raise HTTPException(status_code=400, detail="The `id` field is required.")
@@ -55,6 +55,9 @@ async def save_device(device_data: DeviceCreate, db: AsyncSession = Depends(get_
     if await deviceDB.exists(device_data.id, db):
         raise HTTPException(status_code=400, detail="The device already exists")
 
+    if await deviceDB.mac_exists(device_data.mac, db):
+        raise HTTPException(status_code=400, detail=f"A device already exists for mac address {device_data.mac}")
+    
     device_dict = device_data.model_dump()
     await _create_device_with_ports(device_dict, db)
     
@@ -95,9 +98,10 @@ async def update_device_ports(device_id: str, ports_dict: dict, ports: list[port
                     raise HTTPException(status_code=404, detail=f"Port with index {idx} for device {device_id} not found")
         else:
             LOGGER.debug("No existing ports found for device, creating port for index %s", idx)
+            port_dict["device_id"] = device_id
             await portsDB.create(db, autocommit=False, **port_dict)
 
-@router.put("/devices/{device_id}")
+@router.put("/{device_id}")
 async def update_device(device_id: str, device_data: DeviceUpdate, db: AsyncSession = Depends(get_async_db)):
     device = await deviceDB.get(device_id, db)
     if not device:
@@ -125,7 +129,7 @@ async def update_device(device_id: str, device_data: DeviceUpdate, db: AsyncSess
             raise
     return {"updated": True}
 
-@router.patch("/devices/{device_id}")
+@router.patch("/{device_id}")
 async def update_device(device_id: str, device_data: DeviceUpdate, db: AsyncSession = Depends(get_async_db)):
     device = await deviceDB.get(device_id, db)
     if not device:

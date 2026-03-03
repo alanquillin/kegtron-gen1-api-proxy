@@ -117,7 +117,7 @@ def dict_to_camel_case(data: Union[Dict, List, Any], skip_none: bool = True) -> 
                 continue
 
             # Convert key to camelCase
-            camel_key = snake_to_camel(key) if "_" in key else key
+            camel_key = snake_to_camel(key) if "_" in str(key) else key
 
             # Recursively transform nested structures
             if isinstance(val, dict):

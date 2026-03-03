@@ -7,17 +7,17 @@ from bleak import BleakClient, BleakScanner
 from lib.exceptions import InvalidKegtronAdvertisementData
 import kegtron
 
-LOG = logging.getLogger("kegtron.gatt")
+LOGGER = logging.getLogger("kegtron.gatt")
 
 
 async def write_chars(device, data, response=True):
-    mac = device.get("mac")
+    mac = device.mac
 
     async with BleakClient(mac) as client:
-        print(f'connected to Kegtron at {mac}')
+        LOGGER.debug(f'connected to Kegtron at {mac}')
         for k, v in data.items():
             client.services.get_characteristic(k)
-            print(f"writing '{v}' to character handle '{k}'")
+            LOGGER.debug(f"writing '{v}' to character handle '{k}'")
             await client.write_gatt_char(k, v, response=response)
 
 
