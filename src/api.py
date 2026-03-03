@@ -38,7 +38,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 
-from routes import internal, public, rpc, devices
+from routes import ports, public, rpc, devices
 
 app = FastAPI(
     title="Kegtron V1 API Proxy"
@@ -63,24 +63,11 @@ def get_static_dir() -> str:
     LOGGER.debug("Static .html files path: %s", static_dir)
     return static_dir
 
-# @app.get("/")
-# async def serve_home():
-#     """Serve the Angular SPA index.html"""
-#     static_dir = CONFIG.get("STATIC_FILES_DIR", DEFAULT_STATIC_DIR)
-#     index_path = os.path.join(static_dir, "index.html")
-#     LOGGER.debug("Static index.html file path: %s", index_path)
-#     if os.path.exists(index_path):
-#         return FileResponse(index_path)
-#     raise HTTPException(status_code=500, detail="Static files not found")
-
-# @app.get("/home")
-# async def serve_home_alt():
-#     return await serve_home()
-
-app.include_router(internal.router, prefix="/api/internal/v1")
-app.include_router(devices.router, prefix="/api/v1/devices")
-app.include_router(public.router, prefix="/api/v1")
-app.include_router(rpc.router, prefix="/api/v1")
+app.include_router(devices.router)
+app.include_router(ports.router)
+app.include_router(public.router)
+app.include_router(rpc.router_devices)
+app.include_router(rpc.router_ports)
 
 app.mount("/", StaticFiles(directory=get_static_dir(), html=True), name="static")
 

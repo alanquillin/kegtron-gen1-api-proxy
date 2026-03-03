@@ -36,6 +36,13 @@ class Port(Base, CRUDMixin, DictifiableMixin):
         return super().to_dict(*args, ignore_properties=["data"], **kwargs)
 
     @classmethod
+    async def get_by_device_id_and_index(cls, device_id, index, db: AsyncSession):
+        res = await cls.query(db, device_id=device_id, port_index=index)
+        if not res:
+            return None
+        return res[0]
+
+    @classmethod
     async def create(cls, db: AsyncSession, autocommit=True, **kwargs):
         # TODO override create method to check conditions: 
         # - Device_id + port_index - must be unique 

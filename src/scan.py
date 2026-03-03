@@ -119,7 +119,7 @@ async def update_device(data: dict, port_data: dict, port_data_raw: bytes):
     transformed_data = dict_to_camel_case(data)
     LOGGER.debug(f'Updating device "{data.get("name")}" on proxy.  Device data: {transformed_data}')
     async with AsyncClient() as client:
-        r = await client.patch(f'{proxy_url_prefix}/devices/{data.get("id")}', json=to_json(transformed_data))
+        r = await client.put(f'{proxy_url_prefix}/devices/{data.get("id")}', json=to_json(transformed_data))
         if r.status_code != 200:
             LOGGER.error(f'Failed to update device data. Status Code: {r.status_code}, Message: {r.text}')
         else:
@@ -192,7 +192,7 @@ if __name__ == "__main__":
     CONFIG.set("proxy.enabled", not args.no_proxy)
     app_config = CONFIG
 
-    proxy_url_prefix = f'{CONFIG.get("proxy.scheme")}://{CONFIG.get("proxy.host")}:{CONFIG.get("proxy.port")}/api/internal/v1'
+    proxy_url_prefix = f'{CONFIG.get("proxy.scheme")}://{CONFIG.get("proxy.host")}:{CONFIG.get("proxy.port")}/api/v1'
     
     ignore_logging_modules = ['bleson']
     for i in ignore_logging_modules:

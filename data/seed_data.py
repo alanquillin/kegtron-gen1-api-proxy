@@ -72,7 +72,7 @@ def generate_device_data():
             "volume_dispensed": port_0_total,
             "start_volume": 15500,
             "pulse_count": int(port_0_total * 1000),  # Approximate pulse count
-            "display_unit": "gal" if i % 2 == 0 else "ml",
+            "display_unit": "gal" if i % 2 == 0 else "mL",
             "last_update_timestamp_utc": datetime.now(timezone.utc)
         })
         
@@ -85,7 +85,7 @@ def generate_device_data():
             "volume_dispensed": port_1_total,
             "start_volume": 5160,
             "pulse_count": int(port_1_total * 1000),
-            "display_unit": "gal" if i % 2 == 0 else "ml",
+            "display_unit": "gal" if i % 2 == 0 else "mL",
             "last_update_timestamp_utc": datetime.now(timezone.utc)
         })
         

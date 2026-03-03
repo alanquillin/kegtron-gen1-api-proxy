@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from db.devices import Device as deviceDB
 from db import get_async_db
 
-router = APIRouter()
+router = APIRouter(prefix="/api/v1")
 
 @router.get("/health")
 async def health():

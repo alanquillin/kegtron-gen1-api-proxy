@@ -9,18 +9,11 @@ from db import get_async_db
 import kegtron
 from kegtron import gatt
 
-router = APIRouter()
+router_ports = APIRouter(prefix="/api/v1/devices/{device_id}/port/{port_index}/rpc")
+router_devices = APIRouter(prefix="/api/v1/devices/{device_id}/rpc")
 
-class ResetVolumeRequest(BaseModel):
-    port: Optional[int] = Field(None, description="Port index (0 or 1)")
-    size: Optional[float] = Field(None, description="Volume size")
-    startVolume: Optional[float] = Field(None, description="Starting volume")
-
-class UnlockWriteRequest(BaseModel):
-    port: Optional[int] = Field(None, description="Port index (0 or 1)")
-
-@router.post("/devices/{device_id}/rpc/Kegtron.ResetVolume")
-async def reset_volume_rpc(device_id: str, request: ResetVolumeRequest):
+@router_ports.post("/Kegtron.ResetVolume")
+async def reset_volume_rpc(device_id: str, port_index: int, request: ResetVolumeRequest):
     raise HTTPException(status_code=405, detail="Method not yet implemented")
     # device = deviceDB.get(device_id)
     # if not device:
@@ -60,7 +53,7 @@ async def reset_volume_rpc(device_id: str, request: ResetVolumeRequest):
     # return {"success": True}
 
 
-@router.post("/devices/{device_id}/rpc/Kegtron.UnlockWriteAll")
+@router_devices.post("/Kegtron.UnlockWriteAll")
 async def unlock_write_all_rpc(device_id: str):
     raise HTTPException(status_code=405, detail="Method not yet implemented")
     # device = deviceDB.get(device_id)
@@ -71,8 +64,8 @@ async def unlock_write_all_rpc(device_id: str):
 
     # return {"success": True}
 
-@router.post("/devices/{device_id}/rpc/Kegtron.UnlockWrite")
-async def unlock_write_rpc(device_id: str, request: UnlockWriteRequest, db: AsyncSession = Depends(get_async_db)):
+@router_ports.post("/Kegtron.UnlockWrite")
+async def unlock_write_rpc(device_id: str, port_index: int, db: AsyncSession = Depends(get_async_db)):
     raise HTTPException(status_code=405, detail="Method not yet implemented")
     # device = await deviceDB.get(device_id, db=db)
     # if not device:

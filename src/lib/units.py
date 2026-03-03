@@ -3,6 +3,9 @@ def from_ml(val, unit):
         return val
     
     unit = unit.lower()
+    if unit == "ml":
+        return val
+    
     if unit == "l":
         val = val / 1000
     elif unit == "gal":
