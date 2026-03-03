@@ -76,8 +76,8 @@
             margin-top: 15px;
             padding-top: 15px;
             border-top: 1px solid #dee2e6;
-            margin-top: 25px;
-            padding-top: 8px;
+            margin-bottom: 25px;
+            padding-bottom: 8px;
             border-bottom: 1px solid #dee2e6;
             font-size: 0.9rem;
         }
@@ -299,11 +299,13 @@
                 details.classList.remove('show');
                 card.classList.remove('expanded');
                 toggle.textContent = 'more details';
+                expandedCards.delete(cardId); // Remove from expanded set
             } else {
                 // Show details
                 details.classList.add('show');
                 card.classList.add('expanded');
                 toggle.textContent = 'less details';
+                expandedCards.add(cardId); // Add to expanded set
             }
         }
 
@@ -311,6 +313,21 @@
             const now = new Date();
             const formatted = formatDateTime(now.toISOString());
             $('#lastRefreshed').text(formatted);
+        }
+
+        function restoreExpandedStates() {
+            expandedCards.forEach(cardId => {
+                const card = document.getElementById(cardId);
+                if (card) {
+                    const details = document.getElementById(`${cardId}-details`);
+                    const toggle = card.querySelector('.details-toggle');
+                    if (details && toggle) {
+                        details.classList.add('show');
+                        card.classList.add('expanded');
+                        toggle.textContent = 'less details';
+                    }
+                }
+            });
         }
 
         function loadDevices() {
@@ -352,6 +369,7 @@
                     }
                     
                     devicesContainer.show();
+                    restoreExpandedStates(); // Restore expanded cards after refresh
                     updateLastRefreshed();
                 },
                 error: function(xhr, status, error) {
@@ -363,6 +381,7 @@
 
         let refreshInterval = null;
         let autoRefreshEnabled = true;
+        let expandedCards = new Set(); // Track which cards are expanded
 
         function getRefreshInterval() {
             return parseInt($('#refreshInterval').val()) * 1000;
