@@ -76,6 +76,9 @@
             margin-top: 15px;
             padding-top: 15px;
             border-top: 1px solid #dee2e6;
+            margin-top: 25px;
+            padding-top: 8px;
+            border-bottom: 1px solid #dee2e6;
             font-size: 0.9rem;
         }
         .device-details.show {
@@ -117,16 +120,35 @@
     <div class="container">
         <h1 class="text-center mb-4">Kegtron Gen1 - Device Dashboard</h1>
         <div class="text-center mb-3">
-            <div class="form-check form-switch d-inline-block">
-                <input class="form-check-input" type="checkbox" id="autoRefreshToggle" checked>
-                <label class="form-check-label" for="autoRefreshToggle">
-                    Auto Refresh: <span id="refreshStatus">ON</span>
-                </label>
+            <div class="row justify-content-center align-items-center">
+                <div class="col-auto">
+                    <div class="form-check form-switch d-inline-block">
+                        <input class="form-check-input" type="checkbox" id="autoRefreshToggle" checked>
+                        <label class="form-check-label" for="autoRefreshToggle">
+                            Auto Refresh: <span id="refreshStatus">ON</span>
+                        </label>
+                    </div>
+                </div>
+                <div class="col-auto">
+                    <select class="form-select form-select-sm" id="refreshInterval" style="width: auto;">
+                        <option value="5">5 seconds</option>
+                        <option value="10" selected>10 seconds</option>
+                        <option value="15">15 seconds</option>
+                        <option value="30">30 seconds</option>
+                        <option value="60">60 seconds</option>
+                    </select>
+                </div>
+                <div class="col-auto">
+                    <button class="btn btn-sm btn-primary" onclick="manualRefresh()">
+                        <span id="refreshBtnText">Refresh Now</span>
+                    </button>
+                </div>
             </div>
-            <small class="text-muted ms-3">Refreshes every 10 seconds</small>
-            <button class="btn btn-sm btn-primary ms-3" onclick="manualRefresh()">
-                <span id="refreshBtnText">Refresh Now</span>
-            </button>
+            <div class="row justify-content-center mt-2">
+                <div class="col-auto">
+                    <small class="text-muted">Last refreshed: <span id="lastRefreshed">Never</span></small>
+                </div>
+            </div>
         </div>
         <div id="loading" class="loading">
             <div class="spinner-border text-primary" role="status">
@@ -285,6 +307,12 @@
             }
         }
 
+        function updateLastRefreshed() {
+            const now = new Date();
+            const formatted = formatDateTime(now.toISOString());
+            $('#lastRefreshed').text(formatted);
+        }
+
         function loadDevices() {
             $.ajax({
                 url: '/api/v1/devices',
@@ -324,6 +352,7 @@
                     }
                     
                     devicesContainer.show();
+                    updateLastRefreshed();
                 },
                 error: function(xhr, status, error) {
                     $('#loading').hide();
@@ -335,11 +364,16 @@
         let refreshInterval = null;
         let autoRefreshEnabled = true;
 
+        function getRefreshInterval() {
+            return parseInt($('#refreshInterval').val()) * 1000;
+        }
+
         function startAutoRefresh() {
             if (refreshInterval) {
                 clearInterval(refreshInterval);
             }
-            refreshInterval = setInterval(loadDevices, 10000);
+            const intervalMs = getRefreshInterval();
+            refreshInterval = setInterval(loadDevices, intervalMs);
         }
 
         function stopAutoRefresh() {
@@ -383,6 +417,14 @@
             
             // Set up auto-refresh toggle
             document.getElementById('autoRefreshToggle').addEventListener('change', toggleAutoRefresh);
+            
+            // Set up interval dropdown change handler
+            $('#refreshInterval').on('change', function() {
+                if (autoRefreshEnabled) {
+                    // Restart auto-refresh with new interval
+                    startAutoRefresh();
+                }
+            });
             
             // Start auto-refresh if enabled (default)
             if (autoRefreshEnabled) {
