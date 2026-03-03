@@ -62,30 +62,30 @@ async def reset_volume_rpc(device_id: str, request: ResetVolumeRequest):
 
 @router.post("/devices/{device_id}/rpc/Kegtron.UnlockWriteAll")
 async def unlock_write_all_rpc(device_id: str):
-    # raise HTTPException(status_code=405, detail="Method not yet implemented")
-    device = deviceDB.get(device_id)
-    if not device:
-        raise HTTPException(status_code=404, detail=f'Unknown device with id {device_id}')
+    raise HTTPException(status_code=405, detail="Method not yet implemented")
+    # device = deviceDB.get(device_id)
+    # if not device:
+    #     raise HTTPException(status_code=404, detail=f'Unknown device with id {device_id}')
 
-    await gatt.unlock_all(device)
+    # await gatt.unlock_all(device)
 
-    return {"success": True}
+    # return {"success": True}
 
 @router.post("/devices/{device_id}/rpc/Kegtron.UnlockWrite")
 async def unlock_write_rpc(device_id: str, request: UnlockWriteRequest, db: AsyncSession = Depends(get_async_db)):
-    # raise HTTPException(status_code=405, detail="Method not yet implemented")
-    device = await deviceDB.get(device_id, db=db)
-    if not device:
-        raise HTTPException(status_code=404, detail=f'Unknown device with id {device_id}')
+    raise HTTPException(status_code=405, detail="Method not yet implemented")
+    # device = await deviceDB.get(device_id, db=db)
+    # if not device:
+    #     raise HTTPException(status_code=404, detail=f'Unknown device with id {device_id}')
 
-    port_index = request.port
+    # port_index = request.port
 
-    if port_index is None:
-        port_cnt = device.get("port_cnt", 1)
-        if port_cnt > 1:
-            raise HTTPException(status_code=400, detail="port value is required but not supplied.")
-        port_index = 0
+    # if port_index is None:
+    #     port_cnt = device.get("port_cnt", 1)
+    #     if port_cnt > 1:
+    #         raise HTTPException(status_code=400, detail="port value is required but not supplied.")
+    #     port_index = 0
 
-    await gatt.unlock(device, port_index)
+    # await gatt.unlock(device, port_index)
 
-    return {"success": True}
+    # return {"success": True}
