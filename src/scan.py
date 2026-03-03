@@ -115,7 +115,7 @@ async def update_device(data: dict, port_data: dict, port_data_raw: bytes):
     else:
         LOGGER.info(f'Update window exceeded for {data["id"]} on port {port_index}, updating the proxy.  Last update: {old_port_updated.isoformat()}')
 
-    data["last_update_timestamp_utc'"] = utcnow_aware()
+    data["last_update_timestamp_utc"] = utcnow_aware()
     transformed_data = dict_to_camel_case(data)
     LOGGER.debug(f'Updating device "{data.get("name")}" on proxy.  Device data: {transformed_data}')
     async with AsyncClient() as client:
