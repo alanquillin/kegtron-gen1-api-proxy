@@ -30,8 +30,7 @@ def upgrade() -> None:
     sa.Column('last_advertisement_timestamp_utc', sa.DateTime(timezone=True), nullable=True),
     sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('(CURRENT_TIMESTAMP)'), nullable=True),
     sa.Column('updated_at', sa.DateTime(timezone=True), nullable=True),
-    sa.PrimaryKeyConstraint('id'),
-    sa.UniqueConstraint('mac')
+    sa.PrimaryKeyConstraint('id')
     )
     op.create_index("ix_devices_mac", "devices", ["mac"], unique=True)
     
