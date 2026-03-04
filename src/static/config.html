@@ -69,7 +69,12 @@
                                         </select>
                                         <small class="form-text text-muted">If not set, uses system default</small>
                                     </div>
-                                    <button type="submit" class="btn btn-warning">Set Display Unit</button>
+                                    <button type="submit" class="btn btn-warning" id="displayUnitBtn">
+                                        <span id="displayUnitBtnText">Set Display Unit</span>
+                                        <span class="spinner-border spinner-border-sm ms-2" role="status" id="displayUnitSpinner" style="display: none;">
+                                            <span class="visually-hidden">Loading...</span>
+                                        </span>
+                                    </button>
                                     <div id="displayUnitSuccess" class="alert alert-success mt-3" style="display: none;">
                                         Display unit updated successfully!
                                     </div>
@@ -107,8 +112,11 @@
                                     </div>
                                 </div>
                                 
-                                <button type="submit" class="btn btn-warning">
-                                    Send Reset Volume Command
+                                <button type="submit" class="btn btn-warning" id="resetVolumeBtn">
+                                    <span id="resetVolumeBtnText">Send Reset Volume Command</span>
+                                    <span class="spinner-border spinner-border-sm ms-2" role="status" id="resetVolumeSpinner" style="display: none;">
+                                        <span class="visually-hidden">Loading...</span>
+                                    </span>
                                 </button>
                                 <div id="resetSuccess" class="alert alert-success mt-3" style="display: none;">
                                     Reset volume command sent successfully!
@@ -381,6 +389,35 @@
             return true;
         }
 
+        function refreshDeviceData() {
+            // Reload device data from API
+            $.ajax({
+                url: '/api/v1/devices',
+                method: 'GET',
+                success: function(data) {
+                    devices = data;
+                    
+                    // Find the current device and port
+                    selectedDevice = devices.find(d => d.id === selectedDevice.id);
+                    if (selectedDevice) {
+                        const port = selectedDevice.ports && selectedDevice.ports[selectedPortIndex];
+                        
+                        // Update the details panel with fresh data
+                        updateDetailsPanel(selectedDevice, port, selectedPortIndex);
+                        
+                        // Update display unit dropdowns in case they changed
+                        if (port) {
+                            $('#displayUnit').val(port.displayUnit || '');
+                            $('#resetVolumeUnit').val(port.displayUnit || '');
+                        }
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error('Error refreshing device data:', error);
+                }
+            });
+        }
+
         $('#devicePortSelector').on('change', function() {
             const value = $(this).val();
             if (value) {
@@ -431,6 +468,15 @@
             
             if (!selectedDevice || selectedPortIndex === null) return;
             
+            // Show loading state
+            const $btn = $('#displayUnitBtn');
+            const $spinner = $('#displayUnitSpinner');
+            const $btnText = $('#displayUnitBtnText');
+            
+            $btn.prop('disabled', true);
+            $spinner.show();
+            $btnText.text('Updating...');
+            
             const updateData = {
                 displayUnit: $('#displayUnit').val() || null
             };
@@ -445,13 +491,19 @@
                     $('#displayUnitError').hide();
                     setTimeout(() => $('#displayUnitSuccess').fadeOut(), 3000);
                     
-                    // Reload devices to get updated data
-                    loadDevices();
+                    // Refresh device data and details
+                    refreshDeviceData();
                 },
                 error: function(xhr, status, error) {
                     $('#displayUnitError').show();
                     $('#displayUnitSuccess').hide();
                     console.error('Error updating display unit:', error);
+                },
+                complete: function() {
+                    // Reset button state
+                    $btn.prop('disabled', false);
+                    $spinner.hide();
+                    $btnText.text('Set Display Unit');
                 }
             });
         });
@@ -460,6 +512,15 @@
             e.preventDefault();
             
             if (!selectedDevice || selectedPortIndex === null || !validateResetVolume()) return;
+            
+            // Show loading state
+            const $btn = $('#resetVolumeBtn');
+            const $spinner = $('#resetVolumeSpinner');
+            const $btnText = $('#resetVolumeBtnText');
+            
+            $btn.prop('disabled', true);
+            $spinner.show();
+            $btnText.text('Sending command...');
             
             const commandData = {
                 kegSize: parseFloat($('#kegSize').val()),
@@ -480,11 +541,20 @@
                     // Clear form
                     $('#kegSize').val('');
                     $('#startingVolume').val('');
+                    
+                    // Refresh device data and details
+                    refreshDeviceData();
                 },
                 error: function(xhr, status, error) {
                     $('#resetError').show();
                     $('#resetSuccess').hide();
                     console.error('Error sending reset volume command:', error);
+                },
+                complete: function() {
+                    // Reset button state
+                    $btn.prop('disabled', false);
+                    $spinner.hide();
+                    $btnText.text('Send Reset Volume Command');
                 }
             });
         });
