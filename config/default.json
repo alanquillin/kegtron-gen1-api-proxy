@@ -1,0 +1,16 @@
+{
+  "__conversion_schema": {
+    "logging.colored": "bool",
+    "logging.json": "bool",
+    "logging.levels": "dict"
+  },
+  "db": {
+    "path": "kegtron_proxy.db"
+  },
+  "logging": {
+    "level": "DEBUG",
+    "colored": true,
+    "json": false
+  },
+  "default_display_unit": "gal"
+}

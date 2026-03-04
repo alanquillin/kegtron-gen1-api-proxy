@@ -1,0 +1,186 @@
+/* Common styles for Kegtron Dashboard */
+body {
+    background-color: #f8f9fa;
+    padding: 20px;
+}
+
+.loading {
+    text-align: center;
+    padding: 50px;
+}
+
+.error-message {
+    text-align: center;
+    padding: 50px;
+    color: #dc3545;
+}
+
+/* Device card styles */
+.device-card {
+    margin-bottom: 20px;
+    min-height: 200px;
+    position: relative;
+    transition: all 0.3s ease;
+}
+
+.device-card .card-body {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.device-card.expanded {
+    min-height: 320px;
+}
+
+.device-header {
+    font-size: 0.9rem;
+    color: #6c757d;
+}
+
+.device-name {
+    text-align: center;
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.device-name h5 {
+    margin-bottom: 10px;
+}
+
+.volume-display {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #28a745;
+}
+
+.volume-display.low {
+    color: #ffc107;
+}
+
+.volume-display.empty {
+    color: #dc3545;
+}
+
+.update-time {
+    font-size: 0.8rem;
+    color: #6c757d;
+    position: absolute;
+    bottom: 10px;
+    left: 15px;
+}
+
+.details-toggle {
+    font-size: 0.8rem;
+    color: #007bff;
+    cursor: pointer;
+    position: absolute;
+    bottom: 10px;
+    right: 15px;
+    user-select: none;
+}
+
+.details-toggle:hover {
+    color: #0056b3;
+    text-decoration: underline;
+}
+
+.device-details {
+    display: none;
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid #dee2e6;
+    margin-bottom: 25px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #dee2e6;
+    font-size: 0.9rem;
+}
+
+.device-details.show {
+    display: block;
+}
+
+.detail-row {
+    margin-bottom: 3px;
+    font-size: 0.9rem;
+}
+
+.detail-label {
+    font-weight: 600;
+    color: #495057;
+    display: inline-block;
+    min-width: 140px;
+}
+
+.detail-value {
+    color: #6c757d;
+}
+
+/* Settings icon styles */
+.settings-icon {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    color: #6c757d;
+    cursor: pointer;
+    transition: color 0.2s;
+    text-decoration: none;
+}
+
+.settings-icon:hover {
+    color: #007bff;
+}
+
+/* Auto-refresh status styles */
+#refreshStatus {
+    font-weight: 600;
+    color: #28a745;
+}
+
+#refreshStatus.off {
+    color: #6c757d;
+}
+
+.form-check-input:checked {
+    background-color: #28a745;
+    border-color: #28a745;
+}
+
+/* Config page specific styles */
+.config-section {
+    margin-bottom: 30px;
+    padding: 20px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.config-section h3 {
+    margin-bottom: 20px;
+    color: #333;
+    border-bottom: 2px solid #007bff;
+    padding-bottom: 10px;
+}
+
+.command-group {
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 5px;
+    margin-bottom: 15px;
+}
+
+.command-group h5 {
+    color: #495057;
+    margin-bottom: 15px;
+}
+
+.validation-feedback {
+    display: none;
+    font-size: 0.875rem;
+}
+
+.validation-feedback.show {
+    display: block;
+}

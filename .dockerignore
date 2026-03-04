@@ -1,0 +1,6 @@
+# Git
+.git
+
+# Virtual Environment
+/.env
+/.venv
