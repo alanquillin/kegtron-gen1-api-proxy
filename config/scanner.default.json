@@ -1,7 +1,7 @@
 {
   "__conversion_schema": {
     "proxy.port": "int",
-    "proxy.enabed": "bool",
+    "proxy.enabled": "bool",
     "force_device_update_after_sec": "int"
   },
   "proxy": {

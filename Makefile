@@ -67,9 +67,6 @@ scan:
 scan-dev:
 	$(PYTHON) src/scan.py --log DEBUG
 
-# run-db-migrations:
-# 	./migrate.sh upgrade head
-
 # Testing and Syntax targets
 
 lint:

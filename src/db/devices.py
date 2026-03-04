@@ -41,8 +41,6 @@ class Device(Base, CRUDMixin, DictifiableMixin):
     
     @classmethod
     async def create(cls, db: AsyncSession, autocommit=True, **kwargs):
-        # TODO override create method to check conditions: 
-        # - Device_id + port_index - must be unique 
         if 'last_advertisement_timestamp_utc' in kwargs:
             timestamp = kwargs['last_advertisement_timestamp_utc']
             if isinstance(timestamp, str):
@@ -50,8 +48,6 @@ class Device(Base, CRUDMixin, DictifiableMixin):
         return await super().create(db, autocommit=autocommit, **kwargs)
     
     async def update(self, db: AsyncSession, autocommit=True, **kwargs):
-        # TODO override create method to check conditions: 
-        # - Device_id + port_index - must be unique 
         if 'last_advertisement_timestamp_utc' in kwargs:
             timestamp = kwargs['last_advertisement_timestamp_utc']
             if isinstance(timestamp, str):

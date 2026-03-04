@@ -12,31 +12,10 @@ CONFIG = Config(config_files=["default.json", "api.default.json"], env_prefix="K
 logging.init(config=CONFIG, fmt=logging.DEFAULT_LOG_FMT)
 LOGGER = logging.getLogger(__name__)
 
-# Monkey patch to fix FastAPI/Pydantic compatibility issue with reserved keywords
-import inspect
-from inspect import Parameter
-
-# Store the original Parameter class
-_original_parameter_class = inspect.Parameter
-
-import keyword
-
-class PatchedParameter(_original_parameter_class):
-    """Patched Parameter class that allows reserved keywords as parameter names"""
-    def __init__(self, name, *args, **kwargs):
-        # Replace Python keywords with underscore suffix to avoid conflicts
-        if keyword.iskeyword(name):
-            name = name + '_'
-        super().__init__(name, *args, **kwargs)
-
-# Replace the Parameter class
-inspect.Parameter = PatchedParameter
-
 import uvicorn
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
 
 from routes import ports, public, rpc, devices
 
