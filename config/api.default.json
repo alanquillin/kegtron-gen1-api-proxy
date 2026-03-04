@@ -34,7 +34,8 @@
   "logging": {
     "levels": {
       "sqlalchemy.engine": "WARNING",
-      "aiosqlite": "INFO"
+      "aiosqlite": "INFO",
+      "bleak": "INFO"
     }
   }
 }

@@ -12,7 +12,10 @@
   },
   "logging": {
     "levels": {
-      "bleak.backends.corebluetooth.CentralManagerDelegate": "INFO"
+      "bleak.backends.corebluetooth.CentralManagerDelegate": "INFO",
+      "bleak": "INFO",
+      "bleak.backends.corebluetooth.client": "INFO",
+      "bleak.backends.corebluetooth.PeripheralDelegate": "INFO"
     }
   },
   "force_device_update_after_sec": 300

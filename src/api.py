@@ -63,11 +63,11 @@ def get_static_dir() -> str:
     LOGGER.debug("Static .html files path: %s", static_dir)
     return static_dir
 
+app.include_router(rpc.router_devices)
+app.include_router(rpc.router_ports)
 app.include_router(devices.router)
 app.include_router(ports.router)
 app.include_router(public.router)
-app.include_router(rpc.router_devices)
-app.include_router(rpc.router_ports)
 
 app.mount("/", StaticFiles(directory=get_static_dir(), html=True), name="static")
 
