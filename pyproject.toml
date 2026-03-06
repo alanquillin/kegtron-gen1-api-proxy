@@ -45,10 +45,10 @@ max-statements = 60
 addopts = "--cov api --cov-report term-missing --cov-fail-under 80 --log-level DEBUG"
 
 [tool.poetry]
-name = "kegtron-v1-api-proxy"
+name = "kegtron-gen1-api-proxy"
 version = "0.1.0"
 authors = ["alanquillin"]
-description = "Kegtron v1 API Proxy"
+description = "Kegtron Gen1 API Proxy"
 
 [tool.poetry.dependencies]
 python = "^3.11"

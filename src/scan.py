@@ -3,16 +3,25 @@ import asyncio
 from datetime import datetime, timedelta
 import os
 import sys
+import copy
 
 from lib.config import Config
 from lib import logging
 from lib.util import dict_to_camel_case
 
-# Initialize configuration
-CONFIG = Config(config_files=["default.json", "scanner.default.json"], env_prefix="KEGTRON_SCANNER")
+if __name__ == "__main__":
+    # Initialize configuration
+    CONFIG = Config(config_files=["default.json"], env_prefix="KEGTRON_SCANNER")
+    # Initialize logging
+    logging.init(config=CONFIG, fmt=logging.DEFAULT_LOG_FMT)
+else:
+    CONFIG = Config()
 
-# Initialize logging
-logging.init(config=CONFIG, fmt=logging.DEFAULT_LOG_FMT)
+BACKEND = CONFIG.get("scanner.backend", "api")
+if BACKEND == "db":
+    from db import AsyncSessionLocal
+    from db.devices import Device
+    from db.ports import Port
 
 LOGGER = logging.getLogger("ble_scanner")
 
@@ -52,24 +61,39 @@ async def add_new_dev(addr: str, name: str, adv_data: AdvertisementData, parsed_
         "id": name_to_id(name), 
         "rssi": adv_data.rssi, 
         "model": parsed_data.get("model"),
-        "portCnt": parsed_data.get("port_cnt"),
-        "lastAdvertisementTimestampUtc": utcnow_aware(),
+        "port_cnt": parsed_data.get("port_cnt"),
+        "last_advertisement_timestamp_utc": utcnow_aware(),
         "ports": {}
     }
     if await save_device(data):
         kegtron_devices[addr] = data
         LOGGER.info(f'Discovered new device: {data})')
 
+async def _save_device_db(data: dict) -> bool:
+    device_id = data["id"]
+    mac = data["mac"]
 
-async def save_device(data: dict) -> bool:
+    device_dict = data.copy()
+    device_dict.pop("ports", None)
+    LOGGER.info(f'Saving device to DB: "{device_id}"')
+    LOGGER.debug(f'Device data: {device_dict}')
+    async with AsyncSessionLocal() as db:
+        if await Device.exists(device_id, db) or await Device.mac_exists(mac, db):
+            return True
+        device = await Device.create(db, **device_dict)
+
+        return True if device else False
+
+async def _save_device_api(data: dict) -> bool:
     if not CONFIG.get("proxy.enabled"):
         LOGGER.info("Proxy is disabled, skipping...")
         return True
 
+    transformed_data = dict_to_camel_case(data)
     LOGGER.info(f'Saving device to proxy: "{data.get("name")}"')
-    LOGGER.debug(f'Device data: {data}')
+    LOGGER.debug(f'Device data: {transformed_data}')
     async with AsyncClient() as client:
-        r = await client.post(f'{proxy_url_prefix}/devices', json=to_json(data))
+        r = await client.post(f'{proxy_url_prefix}/devices', json=to_json(transformed_data))
         if r.status_code != 201:
             if r.status_code == 400 and "The device already exists" in r.text:
                 LOGGER.debug("Device already exists, so we are good!")
@@ -81,6 +105,57 @@ async def save_device(data: dict) -> bool:
             LOGGER.debug('Device data saved!')
             return True
 
+async def save_device(data: dict) -> bool:
+    if BACKEND == "api":
+        return await _save_device_api(data)
+    
+    return await _save_device_db(data)
+
+async def _update_device_db(data: dict) -> bool:
+    device_id = data["id"]
+    async with AsyncSessionLocal() as db:
+        device = await Device.get(device_id, db)
+        ports = await Port.query(db, device_id=device_id)
+
+        device_dict = copy.deepcopy(data)
+        ports_dict = device_dict.pop("ports", None)
+        if not device:
+            device = await Device.create(db, autocommit=False, **device_dict)
+        else:
+            await device.update(db, autocommit=False, **device_dict)
+
+        for idx, port_dict in ports_dict.items():
+            port = None
+            for _port in ports:
+                if _port.port_index == idx:
+                    port = _port
+                    break
+            if not port:
+                port_dict["device_id"] = device_id
+                port = await Port.create(db, autocommit=False, **port_dict)
+            else:
+                await port.update(db, autocommit=False, **port_dict)
+        
+        try:
+            await db.commit()
+            return True
+        except Exception as ex:
+            await db.rollback()
+            LOGGER.error("Failed to update device and port data.  Error: %s", ex, exc_info=True)
+            return False
+
+
+async def _update_device_api(data: dict) -> bool:
+    LOGGER.debug("Transforming data: %s", data)
+    transformed_data = dict_to_camel_case(data)
+    LOGGER.debug(f'Updating device "{data.get("name")}" on proxy.  Device data: {transformed_data}')
+    async with AsyncClient() as client:
+        r = await client.put(f'{proxy_url_prefix}/devices/{data.get("id")}', json=to_json(transformed_data))
+        if r.status_code != 200:
+            LOGGER.error(f'Failed to update device data. Status Code: {r.status_code}, Message: {r.text}')
+            return False
+        else:
+            return True
 
 async def update_device(data: dict, port_data: dict, port_data_raw: bytes):
     if not CONFIG.get("proxy.enabled"):
@@ -88,7 +163,7 @@ async def update_device(data: dict, port_data: dict, port_data_raw: bytes):
     
     mac = data["mac"]
     port_index = port_data["port_index"]
-    force_device_update_after_sec = CONFIG.get("force_device_update_after_sec")
+    force_device_update_after_sec = CONFIG.get("scanner.force_device_update_after_sec")
     now = utcnow_aware()
 
     if not mac in device_updates.keys():
@@ -115,18 +190,19 @@ async def update_device(data: dict, port_data: dict, port_data_raw: bytes):
     else:
         LOGGER.info(f'Update window exceeded for {data["id"]} on port {port_index}, updating the proxy.  Last update: {old_port_updated.isoformat()}')
 
-    data["last_update_timestamp_utc"] = utcnow_aware()
-    LOGGER.debug("Transforming data: %s", data)
-    transformed_data = dict_to_camel_case(data)
-    LOGGER.debug(f'Updating device "{data.get("name")}" on proxy.  Device data: {transformed_data}')
-    async with AsyncClient() as client:
-        r = await client.put(f'{proxy_url_prefix}/devices/{data.get("id")}', json=to_json(transformed_data))
-        if r.status_code != 200:
-            LOGGER.error(f'Failed to update device data. Status Code: {r.status_code}, Message: {r.text}')
-        else:
-            device_updates[mac]["ports"][port_index]["raw"] = port_data_raw
-            device_updates[mac]["ports"][port_index]["updated"] = now
-            LOGGER.debug('Device data updated!')
+    data["last_update_timestamp_utc"] = now
+    res = False
+    if BACKEND == "api":
+        res = await _update_device_api(data)
+    else:
+        res = await _update_device_db(data)
+    
+    if res:
+        device_updates[mac]["ports"][port_index]["raw"] = port_data_raw
+        device_updates[mac]["ports"][port_index]["updated"] = now
+        LOGGER.debug('Device data updated!')
+    else:
+        LOGGER.error('Device update failed!')
 
 async def proc_kegtron_device(device: BLEDevice, adv_data: AdvertisementData, raw_data: bytes, parsed_data: dict):
     addr = device.address
@@ -163,8 +239,8 @@ async def detection_callback(device: BLEDevice, adv_data: AdvertisementData):
     except Exception as ex:
         LOGGER.error(str(ex), exc_info=True)
 
-async def scan_with_callback():
-    LOGGER.info("Scanning started with callback...")
+async def scan():
+    LOGGER.info("Scanning started...")
     try:
         while True: 
             # The scanner automatically starts and stops when used as an async context manager
@@ -203,7 +279,7 @@ if __name__ == "__main__":
     logging_level = logging.get_log_level(args.loglevel)
     logging.set_log_level(logging_level)
     try:
-        asyncio.run(scan_with_callback())
+        asyncio.run(scan())
     except KeyboardInterrupt:
         LOGGER.info("User interrupted - Goodbye")
         sys.exit()

@@ -35,6 +35,7 @@ export KEGTRON_SCANNER_CONFIG_BASE_DIR=$(CURDIR)/config
 export KEGTRON_PROXY_DB_BASE_DIR=$(CURDIR)/data
 export KEGTRON_SCANNER_DB_BASE_DIR=$(CURDIR)/data
 export KEGTRON_PROXY_STATIC_FILES_DIR=$(CURDIR)/src/static
+export KEGTRON_PROXY_ENV=development
 endif
 
 
@@ -56,10 +57,10 @@ seed_data:
 	$(PYTHON) data/seed_data.py
 
 run-dev-local: run-db-migrations seed_data
-	$(PYTHON) src/api.py --log DEBUG
+	$(PYTHON) src/app.py --log DEBUG
 
 run-local: run-db-migrations
-	$(PYTHON) src/api.py
+	$(PYTHON) src/app.py
 
 scan:
 	$(PYTHON) src/scan.py 
