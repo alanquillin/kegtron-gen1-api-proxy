@@ -17,3 +17,7 @@ class PortUpdateFromDevice(CamelCaseModel):
 
 class PortUpdate(CamelCaseModel):
     display_unit: str = Field(None, description="Display unit")
+    port_name: str = Field(None, description="Name of port")
+    keg_size: float = Field(None, description="Size of keg (in mL)")
+    start_volume: float = Field(None, description="Start volume (in mL)")
+    volume_dispensed: float = Field(None, description="The amount of volume dispensed (in mL)")

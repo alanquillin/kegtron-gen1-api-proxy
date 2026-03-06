@@ -51,12 +51,17 @@ max-line-length = 160
 max-statements = 60
 
 [tool.pytest.ini_options]
-testpaths = ["test/unit"]
+testpaths = ["test"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
 addopts = "--cov=src --cov-report=term-missing --cov-report=html:htmlcov --log-level=INFO -v"
 asyncio_mode = "auto"
+markers = [
+    "unit: Unit tests",
+    "api: API integration tests",
+    "slow: Slow running tests"
+]
 
 [tool.poetry]
 name = "kegtron-gen1-api-proxy"

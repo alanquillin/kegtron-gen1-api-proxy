@@ -50,6 +50,11 @@ DEFAULT_STATIC_DIR = os.path.join(os.getcwd(), "static")
 def get_static_dir() -> str:
     static_dir = CONFIG.get("STATIC_FILES_DIR", DEFAULT_STATIC_DIR)
     LOGGER.debug("Static .html files path: %s", static_dir)
+    
+    # Create directory if it doesn't exist (for testing)
+    if not os.path.exists(static_dir):
+        os.makedirs(static_dir, exist_ok=True)
+    
     return static_dir
 
 

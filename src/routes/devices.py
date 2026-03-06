@@ -25,11 +25,14 @@ async def _create_device_with_ports(device_dict: dict, db: AsyncSession):
     dev = await deviceDB.create(db, autocommit=False, **device_dict)
     new_ports = []
     if ports:
-        for port_dict in ports:
+        # Handle ports as dict (from schema) or list (legacy)
+        port_items = ports.values() if isinstance(ports, dict) else ports
+        for port_dict in port_items:
             if "display_unit" not in port_dict:
                 display_unit = CONFIG.get("default_display_unit", "mL")
                 LOGGER.debug("display unit not provided, setting to system default: %s", display_unit)
                 port_dict["display_unit"] = display_unit
+            port_dict["device_id"] = dev.id
             p = await portsDB.create(db, autocommit=False, **port_dict)
             new_ports.append(p)
     try:
@@ -38,7 +41,7 @@ async def _create_device_with_ports(device_dict: dict, db: AsyncSession):
         await db.rollback()
         raise
 
-    return dev, ports
+    return dev, new_ports
 
 
 @router.get("")

@@ -39,7 +39,7 @@ export KEGTRON_PROXY_ENV=development
 endif
 
 
-.PHONY: depends update-depends run-dev-local run-local lint format create-migration test test-unit test-coverage
+.PHONY: depends update-depends run-dev-local run-local lint format create-migration test test-unit test-api test-all test-coverage
 
 # dependency targets
 
@@ -56,8 +56,9 @@ seed_data: export PYTHONPATH=$(CURDIR)/src:$PYTHONPATH
 seed_data:
 	$(PYTHON) data/seed_data.py
 
+run-dev-local: export KEGTRON_PROXY_LOG_LEVEL=DEBUG
 run-dev-local: run-db-migrations seed_data
-	$(PYTHON) src/app.py --log DEBUG
+	$(PYTHON) src/app.py
 
 run-local: run-db-migrations
 	$(PYTHON) src/app.py
@@ -65,21 +66,28 @@ run-local: run-db-migrations
 scan:
 	$(PYTHON) src/scan.py 
 
+scan_dev: export KEGTRON_SCANNER_LOG_LEVEL=DEBUG
 scan-dev:
-	$(PYTHON) src/scan.py --log DEBUG
+	$(PYTHON) src/scan.py
 
 # Testing and Syntax targets
 
-test: test-unit
+test: test-all
+
+test-all:
+	$(PYTEST) test
 
 test-unit:
 	$(PYTEST) test/unit
 
+test-api:
+	$(PYTEST) test/api
+
 test-coverage:
-	$(PYTEST) test/unit --cov=src --cov-report=term-missing --cov-report=html:htmlcov
+	$(PYTEST) test --cov=src --cov-report=term-missing --cov-report=html:htmlcov
 
 test-watch:
-	$(PYTEST) test/unit -f
+	$(PYTEST) test -f
 
 lint:
 	$(ISORT) --check-only src
