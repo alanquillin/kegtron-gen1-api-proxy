@@ -234,8 +234,7 @@ if __name__ == "__main__":
     try:
         asyncio.run(app_instance.run())
     except KeyboardInterrupt:
-        LOGGER.info("Received keyboard interrupt, shutting down...")
-        asyncio.run(app_instance.shutdown())
+        LOGGER.info("Received keyboard interrupt")
     except Exception:
         LOGGER.error("Unhandled application error", exc_info=True)
         sys.exit(1)

@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Any, Dict
 
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -43,7 +44,7 @@ async def scanner_status():
         if hasattr(app, 'app_instance') and app.app_instance:
             status = app.app_instance.get_scanner_status()
             # Add timestamp
-            from datetime import datetime
+            
             status["checked_at"] = datetime.utcnow().isoformat() + "Z"
             return status
         else:
@@ -53,14 +54,12 @@ async def scanner_status():
                 "checked_at": datetime.utcnow().isoformat() + "Z"
             }
     except ImportError:
-        from datetime import datetime
         return {
             "status": "unknown", 
             "message": "Running without scanner module",
             "checked_at": datetime.utcnow().isoformat() + "Z"
         }
     except Exception as e:
-        from datetime import datetime
         return {
             "status": "error", 
             "message": str(e),
