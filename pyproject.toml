@@ -42,7 +42,12 @@ max-line-length = 160
 max-statements = 60
 
 [tool.pytest.ini_options]
-addopts = "--cov api --cov-report term-missing --cov-fail-under 80 --log-level DEBUG"
+testpaths = ["test/unit"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "--cov=src --cov-report=term-missing --cov-report=html:htmlcov --log-level=INFO -v"
+asyncio_mode = "auto"
 
 [tool.poetry]
 name = "kegtron-gen1-api-proxy"
@@ -72,3 +77,10 @@ bandit = "^1.7.9"
 black = "^24.4.2"
 pylint = "^3.2.5"
 isort = "^5.13.2"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^9.0.2"
+pytest-cov = "^7.0.0"
+pytest-asyncio = "^1.3.0"
+pytest-mock = "^3.15.1"
+

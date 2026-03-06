@@ -39,7 +39,7 @@ export KEGTRON_PROXY_ENV=development
 endif
 
 
-.PHONY: depends update-depends run-dev-local run-local lint format create-migration
+.PHONY: depends update-depends run-dev-local run-local lint format create-migration test test-unit test-coverage
 
 # dependency targets
 
@@ -69,6 +69,17 @@ scan-dev:
 	$(PYTHON) src/scan.py --log DEBUG
 
 # Testing and Syntax targets
+
+test: test-unit
+
+test-unit:
+	$(PYTEST) test/unit
+
+test-coverage:
+	$(PYTEST) test/unit --cov=src --cov-report=term-missing --cov-report=html:htmlcov
+
+test-watch:
+	$(PYTEST) test/unit -f
 
 lint:
 	$(ISORT) --check-only src
