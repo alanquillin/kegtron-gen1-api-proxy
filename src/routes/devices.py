@@ -1,18 +1,17 @@
-from fastapi import APIRouter, HTTPException, Request, Depends
+from typing import Any, Dict, List
+
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import JSONResponse
-from typing import Dict, Any, List
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from db.devices import Device as deviceDB
 from db import get_async_db
+from db.devices import Device as deviceDB
 from db.ports import Port as portsDB
-from lib.config import Config
 from lib import logging
-from services.devices import transform_device
+from lib.config import Config
 from schemas.devices import DeviceCreate, DeviceUpdate
-
-
+from services.devices import transform_device
 
 LOGGER = logging.getLogger(__name__)
 CONFIG = Config()
@@ -58,10 +57,10 @@ async def save_device(device_data: DeviceCreate, db: AsyncSession = Depends(get_
 
     if await deviceDB.mac_exists(device_data.mac, db):
         raise HTTPException(status_code=400, detail=f"A device already exists for mac address {device_data.mac}")
-    
+
     device_dict = device_data.model_dump()
     await _create_device_with_ports(device_dict, db)
-    
+
     return {"created": True}
 
 
@@ -71,6 +70,7 @@ async def get_device(device_id: str, db: AsyncSession = Depends(get_async_db)) -
     if not device:
         raise HTTPException(status_code=404, detail=f"Device with id {device_id} not found")
     return transform_device(device)
+
 
 async def update_device_ports(device_id: str, ports_dict: dict, ports: list[portsDB], db: AsyncSession, create_on_not_found=False):
     for idx, port_dict in ports_dict.items():
@@ -101,6 +101,7 @@ async def update_device_ports(device_id: str, ports_dict: dict, ports: list[port
             port_dict["device_id"] = device_id
             await portsDB.create(db, autocommit=False, **port_dict)
 
+
 @router.put("/{device_id}")
 async def update_device(device_id: str, device_data: DeviceUpdate, db: AsyncSession = Depends(get_async_db)):
     device = await deviceDB.get(device_id, db)
@@ -115,8 +116,7 @@ async def update_device(device_id: str, device_data: DeviceUpdate, db: AsyncSess
 
         ports = None
         if ports_dict:
-            ports =  await portsDB.query(db, device_id=device_id)
-
+            ports = await portsDB.query(db, device_id=device_id)
 
         LOGGER.debug("Updating device with data: %s", device_dict)
         await device.update(db, autocommit=False, **device_dict)
@@ -128,6 +128,7 @@ async def update_device(device_id: str, device_data: DeviceUpdate, db: AsyncSess
             await db.rollback()
             raise
     return {"updated": True}
+
 
 @router.patch("/{device_id}")
 async def update_device(device_id: str, device_data: DeviceUpdate, db: AsyncSession = Depends(get_async_db)):
@@ -143,7 +144,7 @@ async def update_device(device_id: str, device_data: DeviceUpdate, db: AsyncSess
 
         ports = None
         if ports_dict:
-            ports =  await portsDB.query(db, device_id=device_id)
+            ports = await portsDB.query(db, device_id=device_id)
 
         await device.update(db, autocommit=False, **device_dict)
         if ports_dict:

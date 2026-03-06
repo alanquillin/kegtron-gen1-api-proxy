@@ -1,16 +1,15 @@
-from fastapi import APIRouter, HTTPException, Request, Depends
+from typing import Any, Dict, List
+
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import JSONResponse
-from typing import Dict, Any, List
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from db.ports import Port
 from db import get_async_db
+from db.ports import Port
 from db.ports import Port as portsDB
-from lib.config import Config
 from lib import logging
+from lib.config import Config
 from schemas.ports import PortUpdate
-
-
 
 LOGGER = logging.getLogger(__name__)
 CONFIG = Config()
@@ -24,7 +23,7 @@ async def update_device(device_id: str, port_index: int, port_data: PortUpdate, 
 
     if not port:
         raise HTTPException(status_code=404, detail=f"Port with index {port_index} for device {device_id} not found")
-    
+
     data = port_data.model_dump(exclude_unset=True)
     if "display_unit" in data:
         display_unit = data["display_unit"]
@@ -34,7 +33,7 @@ async def update_device(device_id: str, port_index: int, port_data: PortUpdate, 
             data["display_unit"] = "mL"
         elif display_unit == "l":
             data["display_unit"] = "L"
-    
+
     LOGGER.debug("Updating port with index %s, on device %s with data: %s", port_index, device_id, data)
     await port.update(db, **data)
 

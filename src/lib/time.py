@@ -4,7 +4,6 @@ from dateutil import relativedelta
 
 
 def parse_iso8601_utc(in_str):
-
     """Parse an isoformat()'d str assuming UTC if no tzinfo is provided."""
 
     timestamp = datetime.datetime.fromisoformat(in_str)
@@ -16,8 +15,6 @@ def parse_iso8601_utc(in_str):
 
 
 def utcnow_aware():
-
     """Return an aware datetime in UTC."""
 
     return datetime.datetime.now(datetime.timezone.utc)
-

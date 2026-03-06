@@ -23,14 +23,12 @@ def snake_to_camel(in_str: str) -> str:
 
 
 def random_string(length: int) -> str:
-
     """Return a random string of a certain length."""
 
     return "".join(random.SystemRandom().choice(string.ascii_uppercase + string.ascii_lowercase + string.digits) for _ in range(length))
 
 
 def flatten_dict(data: dict, parent_name: str = "", sep: str = ".", key_converter: callable = None, skip_key_check: callable = None) -> dict:
-
     """
     Flattens a dictionary to a single layer with child keys separated by `sep` charactor
 
@@ -100,6 +98,7 @@ def is_valid_uuid(uuid_to_test, version=4) -> bool:
         return False
 
     return str(uuid_obj) == uuid_to_test
+
 
 def dict_to_camel_case(data: Union[Dict, List, Any], skip_none: bool = True) -> Union[Dict, List, Any]:
     """

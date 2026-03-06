@@ -1,12 +1,14 @@
-from fastapi import APIRouter, HTTPException, Request, Depends
+from typing import Any, Dict
+
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import JSONResponse
-from typing import Dict, Any
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from db.devices import Device as deviceDB
 from db import get_async_db
+from db.devices import Device as deviceDB
 
 router = APIRouter(prefix="/api/v1")
+
 
 @router.get("/health")
 async def health():

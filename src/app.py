@@ -1,9 +1,11 @@
 # Initialize configuration *NEEDS TO BE DONE BEFORE ALL OTHER IMPORTS*
 from lib.config import Config
+
 CONFIG = Config(config_files=["default.json"], env_prefix="KEGTRON_PROXY")
 
 # Initialize logging *NEEDS TO BE DONE BEFORE ALL OTHER IMPORTS*
 from lib import logging
+
 logging.init(config=CONFIG, fmt=logging.DEFAULT_LOG_FMT)
 LOGGER = logging.getLogger(__name__)
 
@@ -11,14 +13,14 @@ LOGGER = logging.getLogger(__name__)
 LOGGER.debug(CONFIG.data_flat)
 
 import argparse
+import asyncio
 import os
 import sys
-import asyncio
 
 import uvicorn
 
-from api import api
 import scan as kegtron_ble_scanner
+from api import api
 
 
 class Application:
@@ -114,6 +116,7 @@ class Application:
                 pass
 
         LOGGER.info("Application shutdown complete")
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

@@ -1,11 +1,11 @@
 def from_ml(val, unit):
     if not val:
         return val
-    
+
     unit = unit.lower()
     if unit == "ml":
         return val
-    
+
     if unit == "l":
         val = val / 1000
     elif unit == "gal":
@@ -36,11 +36,11 @@ def from_ml(val, unit):
 def to_ml(val, unit: str):
     if not val:
         return val
-    
+
     unit = unit.lower()
     if unit == "ml":
         return val
-    
+
     if unit == "l":
         val = val * 1000
     elif unit == "gal":

@@ -1,11 +1,12 @@
 import os
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from lib import logging
 from lib.config import Config
-from routes import ports, public, rpc, devices
+from routes import devices, ports, public, rpc
 
 CONFIG = Config()
 LOGGER = logging.getLogger(__name__)
@@ -45,10 +46,12 @@ api.state.config = CONFIG
 
 DEFAULT_STATIC_DIR = os.path.join(os.getcwd(), "static")
 
+
 def get_static_dir() -> str:
     static_dir = CONFIG.get("STATIC_FILES_DIR", DEFAULT_STATIC_DIR)
     LOGGER.debug("Static .html files path: %s", static_dir)
     return static_dir
+
 
 api.include_router(rpc.router_devices)
 api.include_router(rpc.router_ports)

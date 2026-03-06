@@ -1,10 +1,10 @@
-from dateutil.parser import parse as parse_datetime
+from typing import Any, Dict
 
-from sqlalchemy import Column, String, Integer, Float, DateTime, ForeignKey, JSON, Boolean
+from dateutil.parser import parse as parse_datetime
+from sqlalchemy import JSON, Boolean, Column, DateTime, Float, ForeignKey, Integer, String
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
-from typing import Dict, Any
 
 from db import Base, CRUDMixin, DictifiableMixin
 from lib import logging
@@ -12,11 +12,13 @@ from lib import logging
 LOGGER = logging.getLogger(__name__)
 
 TABLE_NAME = "ports"
+
+
 class Port(Base, CRUDMixin, DictifiableMixin):
     __tablename__ = TABLE_NAME
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    device_id = Column(String, ForeignKey('devices.id'), nullable=False)
+    device_id = Column(String, ForeignKey("devices.id"), nullable=False)
     port_index = Column(Integer, nullable=False)
     port_name = Column(String, nullable=True)
     keg_size = Column(Float, nullable=True)
@@ -28,7 +30,7 @@ class Port(Base, CRUDMixin, DictifiableMixin):
     data = Column(JSON, nullable=True)  # Store any additional port data as JSON
     last_update_timestamp_utc = Column(DateTime(timezone=True), nullable=True)
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
-    
+
     # Relationship back to device
     device = relationship("Device", back_populates="ports")
 
@@ -44,19 +46,19 @@ class Port(Base, CRUDMixin, DictifiableMixin):
 
     @classmethod
     async def create(cls, db: AsyncSession, autocommit=True, **kwargs):
-        # TODO override create method to check conditions: 
-        # - Device_id + port_index - must be unique 
-        if 'last_update_timestamp_utc' in kwargs:
-            timestamp = kwargs['last_update_timestamp_utc']
+        # TODO override create method to check conditions:
+        # - Device_id + port_index - must be unique
+        if "last_update_timestamp_utc" in kwargs:
+            timestamp = kwargs["last_update_timestamp_utc"]
             if isinstance(timestamp, str):
-                kwargs['last_update_timestamp_utc'] = parse_datetime(timestamp)
+                kwargs["last_update_timestamp_utc"] = parse_datetime(timestamp)
         return await super().create(db, autocommit=autocommit, **kwargs)
-    
+
     async def update(self, db: AsyncSession, autocommit=True, **kwargs):
-        # TODO override create method to check conditions: 
-        # - Device_id + port_index - must be unique 
-        if 'last_update_timestamp_utc' in kwargs:
-            timestamp = kwargs['last_update_timestamp_utc']
+        # TODO override create method to check conditions:
+        # - Device_id + port_index - must be unique
+        if "last_update_timestamp_utc" in kwargs:
+            timestamp = kwargs["last_update_timestamp_utc"]
             if isinstance(timestamp, str):
-                kwargs['last_update_timestamp_utc'] = parse_datetime(timestamp)
+                kwargs["last_update_timestamp_utc"] = parse_datetime(timestamp)
         return await super().update(db, autocommit=autocommit, **kwargs)

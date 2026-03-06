@@ -1,8 +1,8 @@
-from typing import Dict, Any
+from typing import Any, Dict
+
 from pydantic import BaseModel, Field
 
 from schemas import CamelCaseModel
-
 
 
 class PortUpdateFromDevice(CamelCaseModel):
@@ -13,6 +13,7 @@ class PortUpdateFromDevice(CamelCaseModel):
     last_update_timestamp_utc: str = Field(None, description="Timestampo for last update to port values (or forced)")
     configured: bool = Field(None, description="Is Port configured")
     port_index: int = Field(None, description="Port index")
+
 
 class PortUpdate(CamelCaseModel):
     display_unit: str = Field(None, description="Display unit")
