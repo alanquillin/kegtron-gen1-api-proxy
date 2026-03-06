@@ -1,4 +1,3 @@
-from datetime import datetime
 from typing import Any, Dict
 
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -7,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from db import get_async_db
 from db.devices import Device as deviceDB
+from lib.time import utcnow_aware
 
 router = APIRouter(prefix="/api/v1")
 
@@ -45,25 +45,25 @@ async def scanner_status():
             status = app.app_instance.get_scanner_status()
             # Add timestamp
             
-            status["checked_at"] = datetime.utcnow().isoformat() + "Z"
+            status["checked_at"] = utcnow_aware().isoformat()
             return status
         else:
             return {
                 "status": "not_initialized", 
                 "message": "Application instance not available",
-                "checked_at": datetime.utcnow().isoformat() + "Z"
+                "checked_at": utcnow_aware().isoformat()
             }
     except ImportError:
         return {
             "status": "unknown", 
             "message": "Running without scanner module",
-            "checked_at": datetime.utcnow().isoformat() + "Z"
+            "checked_at": utcnow_aware().isoformat()
         }
     except Exception as e:
         return {
             "status": "error", 
             "message": str(e),
-            "checked_at": datetime.utcnow().isoformat() + "Z"
+            "checked_at": utcnow_aware().isoformat()
         }
 
 
