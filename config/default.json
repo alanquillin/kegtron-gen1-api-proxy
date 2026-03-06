@@ -15,7 +15,7 @@
   },
   "api": {
     "host": "localhost",
-    "port": 5000,
+    "port": 8080,
     "cookies": {
       "secure": true,
       "http_only": true,
@@ -40,7 +40,7 @@
     "path": "kegtron_proxy.db"
   },
   "logging": {
-    "level": "DEBUG",
+    "level": "INFO",
     "colored": true,
     "json": false,
     "levels": {
@@ -54,9 +54,9 @@
   },
   "proxy": {
     "host": "localhost",
-    "port": 5000,
+    "port": 8080,
     "scheme": "http",
-    "enabled": true
+    "enabled": false
   },
   "default_display_unit": "gal",
   "scanner": {

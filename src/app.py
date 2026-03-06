@@ -71,7 +71,7 @@ class Application:
     async def start_http_server(self):
         """Start the HTTP/WebSocket server"""
         host = CONFIG.get("api.host", "localhost")
-        port = CONFIG.get("api.port", 5000)
+        port = CONFIG.get("api.port", 8080)
         LOGGER.info("Serving API on %s:%d", host, port)
 
         config = uvicorn.Config(
