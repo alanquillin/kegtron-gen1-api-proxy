@@ -153,6 +153,10 @@ async def _update_device_db(data: dict) -> bool:
 
 
 async def _update_device_api(data: dict) -> bool:
+    if not CONFIG.get("proxy.enabled"):
+        LOGGER.info("Proxy is disabled, skipping...")
+        return True
+
     LOGGER.debug("Transforming data: %s", data)
     transformed_data = dict_to_camel_case(data)
     LOGGER.debug(f'Updating device "{data.get("name")}" on proxy.  Device data: {transformed_data}')
@@ -166,9 +170,6 @@ async def _update_device_api(data: dict) -> bool:
 
 
 async def update_device(data: dict, port_data: dict, port_data_raw: bytes):
-    if not CONFIG.get("proxy.enabled"):
-        return
-
     mac = data["mac"]
     port_index = port_data["port_index"]
     force_device_update_after_sec = CONFIG.get("scanner.force_device_update_after_sec")

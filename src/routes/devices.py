@@ -151,7 +151,7 @@ async def update_device(device_id: str, device_data: DeviceUpdate, db: AsyncSess
 
         await device.update(db, autocommit=False, **device_dict)
         if ports_dict:
-            update_device_ports(device_id, ports_dict, ports, db)
+            await update_device_ports(device_id, ports_dict, ports, db)
         try:
             await db.commit()
         except Exception:
