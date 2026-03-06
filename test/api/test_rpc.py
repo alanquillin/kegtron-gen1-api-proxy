@@ -4,35 +4,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 from db.devices import Device as DeviceDB
 from db.ports import Port as PortDB
 
-
-def convert_device_data_for_db(device_data):
-    """Convert API device data to database format."""
-    device_copy = device_data.copy()
-    ports_data = device_copy.pop("ports", {})
-    
-    # Convert camelCase to snake_case for database
-    db_device_data = {
-        "id": device_copy["id"],
-        "name": device_copy.get("name"),
-        "model": device_copy.get("model"),
-        "mac": device_copy["mac"],
-        "port_cnt": device_copy.get("portCnt", 1)
-    }
-    
-    db_ports_data = []
-    for port_idx, port in ports_data.items():
-        db_port_data = {
-            "port_index": port["portIndex"],
-            "port_name": port.get("portName"),
-            "keg_size": port.get("kegSize", 0),
-            "start_volume": port.get("startVolume", 0),
-            "volume_dispensed": port.get("volumeDispensed", 0),
-            "display_unit": port.get("displayUnit", "mL"),
-            "configured": port.get("configured", True)
-        }
-        db_ports_data.append(db_port_data)
-    
-    return db_device_data, db_ports_data
+from .conftest import convert_device_data_for_db
 
 
 class TestRPCEndpoints:
@@ -116,7 +88,7 @@ class TestRPCEndpoints:
         """Test resetting volume on a port."""
         # Create a device with initial volume dispensed
         db_device_data, db_ports_data = convert_device_data_for_db(sample_device_data)
-        db_ports_data[0]["volume_dispensed"] = 5000  # Start with some volume dispensed
+        db_ports_data[0]["volume_dispensed"] = 5000  # ~1.3 gallons - realistic partial keg consumption
         
         device = await DeviceDB.create(async_db_session, **db_device_data)
         for port_data in db_ports_data:
@@ -128,8 +100,8 @@ class TestRPCEndpoints:
         with patch('routes.rpc.gatt.write_chars', new_callable=AsyncMock) as mock_write:
             # Reset volume
             reset_data = {
-                "keg_size": 19000,
-                "start_volume": 19000,
+                "keg_size": 19000,  # ~5 gallon keg (standard corny keg size)
+                "start_volume": 19000,  # Starting with a full 5 gallon keg
                 "unit": "mL"
             }
             
@@ -149,8 +121,8 @@ class TestRPCEndpoints:
         # Verify database was updated
         port = await PortDB.get_by_device_id_and_index(device.id, 0, async_db_session)
         assert port.volume_dispensed == 0
-        assert port.keg_size == 19000
-        assert port.start_volume == 19000
+        assert port.keg_size == 19000  # Verify 5 gallon keg size was set
+        assert port.start_volume == 19000  # Verify starting volume matches keg size
     
     @pytest.mark.asyncio
     async def test_reset_volume_with_units(self, client, async_db_session, sample_device_data, mock_gatt):
@@ -180,8 +152,8 @@ class TestRPCEndpoints:
         
         # Verify conversion to mL
         port = await PortDB.get_by_device_id_and_index(device.id, 0, async_db_session)
-        assert port.keg_size > 18900  # ~5 gallons in mL
-        assert port.keg_size < 19000
+        assert port.keg_size > 18900  # 5 gallons = 18927.1 mL (with rounding tolerance)
+        assert port.keg_size < 19000  # Upper bound for 5 gallon conversion
     
     @pytest.mark.asyncio
     async def test_reset_volume_invalid_port(self, client, async_db_session, sample_device_data, mock_gatt):
@@ -196,7 +168,7 @@ class TestRPCEndpoints:
         await async_db_session.commit()
         
         # Try to reset volume on port 1 (doesn't exist on KT-100)
-        reset_data = {"keg_size": 19000, "unit": "mL"}
+        reset_data = {"keg_size": 19000, "unit": "mL"}  # 5 gallon keg
         
         response = await client.post(
             f"/api/v1/devices/{device.id}/port/1/rpc/Kegtron.ResetVolume",
@@ -207,7 +179,7 @@ class TestRPCEndpoints:
     @pytest.mark.asyncio
     async def test_reset_volume_nonexistent_device(self, client, mock_gatt):
         """Test resetting volume for a device that doesn't exist."""
-        reset_data = {"keg_size": 19000, "unit": "mL"}
+        reset_data = {"keg_size": 19000, "unit": "mL"}  # 5 gallon keg
         
         response = await client.post(
             "/api/v1/devices/nonexistent/port/0/rpc/Kegtron.ResetVolume",
@@ -231,7 +203,7 @@ class TestRPCEndpoints:
         
         with patch('routes.rpc.gatt.write_chars', new_callable=AsyncMock):
             # Reset only start_volume
-            reset_data = {"start_volume": 15000, "unit": "mL"}
+            reset_data = {"start_volume": 15000, "unit": "mL"}  # ~4 gallons - partial keg
             
             response = await client.post(
                 f"/api/v1/devices/{device.id}/port/0/rpc/Kegtron.ResetVolume",
@@ -245,7 +217,7 @@ class TestRPCEndpoints:
         device_data = response.json()
         port_data = device_data["ports"]["0"]
         assert port_data["volumeDispensed"] == 0  # Always reset
-        assert port_data["startVolume"] == 15000  # Updated
+        assert port_data["startVolume"] == 15000  # Verify partial volume (~4 gallons) was set
         assert port_data["kegSize"] == original_keg_size  # Unchanged
     
     @pytest.mark.asyncio
@@ -263,8 +235,8 @@ class TestRPCEndpoints:
         with patch('routes.rpc.gatt.write_chars', new_callable=AsyncMock):
             # Reset port 0
             reset_data_0 = {
-                "keg_size": 20000,
-                "start_volume": 20000,
+                "keg_size": 20000,  # ~5.3 gallons - slightly larger keg
+                "start_volume": 20000,  # Starting full
                 "unit": "mL"
             }
             response = await client.post(
@@ -275,8 +247,8 @@ class TestRPCEndpoints:
             
             # Reset port 1
             reset_data_1 = {
-                "keg_size": 40000,
-                "start_volume": 40000,
+                "keg_size": 40000,  # ~10.6 gallons - half barrel size
+                "start_volume": 40000,  # Starting full
                 "unit": "mL"
             }
             response = await client.post(
@@ -287,9 +259,9 @@ class TestRPCEndpoints:
         
         # Verify both ports were updated
         port_0 = await PortDB.get_by_device_id_and_index(device.id, 0, async_db_session)
-        assert port_0.keg_size == 20000
+        assert port_0.keg_size == 20000  # Port 0: 5.3 gallon keg
         assert port_0.volume_dispensed == 0
         
         port_1 = await PortDB.get_by_device_id_and_index(device.id, 1, async_db_session)
-        assert port_1.keg_size == 40000
+        assert port_1.keg_size == 40000  # Port 1: 10.6 gallon (half barrel)
         assert port_1.volume_dispensed == 0

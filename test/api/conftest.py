@@ -208,3 +208,43 @@ def mock_kegtron_parser():
         mock.parse_scan = MagicMock()
         mock.parse_scan_short = MagicMock()
         yield mock
+
+
+def convert_device_data_for_db(device_data):
+    """Convert API device data to database format.
+    
+    This helper function converts between API format (camelCase with dict ports)
+    and database format (snake_case with list ports).
+    
+    Args:
+        device_data: Device data in API format with camelCase fields
+        
+    Returns:
+        tuple: (db_device_data, db_ports_data) ready for database insertion
+    """
+    device_copy = device_data.copy()
+    ports_data = device_copy.pop("ports", {})
+    
+    # Convert camelCase to snake_case for database
+    db_device_data = {
+        "id": device_copy["id"],
+        "name": device_copy.get("name"),
+        "model": device_copy.get("model"),
+        "mac": device_copy["mac"],
+        "port_cnt": device_copy.get("portCnt", 1)
+    }
+    
+    db_ports_data = []
+    for port_idx, port in ports_data.items():
+        db_port_data = {
+            "port_index": port["portIndex"],
+            "port_name": port.get("portName"),
+            "keg_size": port.get("kegSize", 0),
+            "start_volume": port.get("startVolume", 0),
+            "volume_dispensed": port.get("volumeDispensed", 0),
+            "display_unit": port.get("displayUnit", "mL"),
+            "configured": port.get("configured", True)
+        }
+        db_ports_data.append(db_port_data)
+    
+    return db_device_data, db_ports_data

@@ -10,7 +10,11 @@ class TestPublicEndpoints:
         """Test the health check endpoint."""
         response = await client.get("/api/v1/health")
         assert response.status_code == 200
-        assert response.json() == "We are up and running!"
+        data = response.json()
+        assert data["status"] == "healthy"
+        assert data["api"] == "running"
+        # Scanner status should be present (even if unknown in test environment)
+        assert "scanner" in data
     
     @pytest.mark.asyncio
     async def test_ping_endpoint(self, client):
@@ -23,7 +27,11 @@ class TestPublicEndpoints:
         """Test the health endpoint with sync client."""
         response = sync_client.get("/api/v1/health")
         assert response.status_code == 200
-        assert response.json() == "We are up and running!"
+        data = response.json()
+        assert data["status"] == "healthy"
+        assert data["api"] == "running"
+        # Scanner status should be present (even if unknown in test environment)
+        assert "scanner" in data
     
     def test_ping_endpoint_sync(self, sync_client):
         """Test the ping endpoint with sync client."""

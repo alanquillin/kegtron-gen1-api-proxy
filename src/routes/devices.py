@@ -111,6 +111,8 @@ async def update_device(device_id: str, device_data: DeviceUpdate, db: AsyncSess
     if not device:
         # Create new device if doesn't exist
         device_dict = device_data.model_dump(exclude_unset=True)
+        if "id" not in device_dict:
+            device_dict["id"] = device_id
         await _create_device_with_ports(device_dict, db)
     else:
         # Update existing device

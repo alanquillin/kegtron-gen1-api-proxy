@@ -22,6 +22,9 @@ import uvicorn
 import scan as kegtron_ble_scanner
 from api import api
 
+# Global application instance for access from other modules
+app_instance = None
+
 
 class Application:
     """Main application class"""
@@ -31,6 +34,8 @@ class Application:
         self.http_server = None
         self.scanner = None
         self.log_level = log_level
+        self.shutdown_event = asyncio.Event()
+        self.scanner_restart_delay = 5  # seconds to wait before restarting scanner
 
     # async def initialize_first_user(self):
     #     """Create initial user if no users exist"""
@@ -65,8 +70,75 @@ class Application:
 
     #             await UsersDB.create(db_session, **data)
 
+    def get_scanner_status(self):
+        """Get the current scanner status for health checks"""
+        if not CONFIG.get("scanner.enabled"):
+            return {"status": "disabled", "message": "Scanner is disabled in configuration"}
+        
+        if not self.scanner_task:
+            return {"status": "not_started", "message": "Scanner task not initialized"}
+        
+        if self.scanner_task.done():
+            if self.scanner_task.cancelled():
+                return {"status": "cancelled", "message": "Scanner task was cancelled"}
+            
+            try:
+                # Check if task completed with an exception
+                self.scanner_task.result()
+                return {"status": "stopped", "message": "Scanner task completed normally"}
+            except Exception as e:
+                return {"status": "failed", "message": f"Scanner task failed: {str(e)}"}
+        
+        return {"status": "running", "message": "Scanner is running normally"}
+    
     async def start_scanner(self):
-        self.scanner_task = asyncio.create_task(kegtron_ble_scanner.scan())
+        """Start the BLE scanner with automatic restart on failure"""
+        async def scanner_with_restart():
+            """Inner function to handle scanner restarts"""
+            consecutive_failures = 0
+            max_consecutive_failures = 5
+            
+            while not self.shutdown_event.is_set():
+                try:
+                    LOGGER.info("Starting BLE scanner...")
+                    await kegtron_ble_scanner.scan()
+                    consecutive_failures = 0  # Reset on successful completion
+                except asyncio.CancelledError:
+                    LOGGER.info("Scanner task cancelled")
+                    break
+                except Exception as e:
+                    consecutive_failures += 1
+                    LOGGER.error(
+                        "Scanner crashed (failure %d/%d): %s", 
+                        consecutive_failures, 
+                        max_consecutive_failures,
+                        e,
+                        exc_info=True
+                    )
+                    
+                    if consecutive_failures >= max_consecutive_failures:
+                        LOGGER.critical(
+                            "Scanner failed %d times consecutively. Stopping restart attempts.",
+                            max_consecutive_failures
+                        )
+                        break
+                    
+                    # Wait before restarting, with exponential backoff
+                    wait_time = min(self.scanner_restart_delay * (2 ** (consecutive_failures - 1)), 60)
+                    LOGGER.info("Restarting scanner in %d seconds...", wait_time)
+                    
+                    try:
+                        await asyncio.wait_for(
+                            self.shutdown_event.wait(),
+                            timeout=wait_time
+                        )
+                        # If we get here, shutdown was requested
+                        break
+                    except asyncio.TimeoutError:
+                        # Normal case - continue to restart
+                        pass
+        
+        self.scanner_task = asyncio.create_task(scanner_with_restart())
 
     async def start_http_server(self):
         """Start the HTTP/WebSocket server"""
@@ -88,6 +160,15 @@ class Application:
         await self.http_server.serve()
 
     async def run(self):
+        """Main application entry point.
+        
+        Initializes and starts all application components:
+        - Starts the BLE scanner if enabled
+        - Starts the HTTP/WebSocket server
+        - Handles graceful shutdown on cancellation
+        
+        The method runs until interrupted (Ctrl+C) or cancelled.
+        """
         # Initialize first user if needed
         # LOGGER.info("Checking for initial user...")
         # await self.initialize_first_user()
@@ -105,8 +186,20 @@ class Application:
             await self.shutdown()
 
     async def shutdown(self):
-        """Cleanup on shutdown"""
+        """Gracefully shutdown all application components.
+        
+        This method:
+        - Sets the shutdown event to signal all tasks to stop
+        - Cancels the scanner task and waits for it to complete
+        - Logs the shutdown process for debugging
+        
+        Should be called when the application is terminating to ensure
+        proper cleanup of resources.
+        """
         LOGGER.info("Shutting down application...")
+        
+        # Signal shutdown to all tasks
+        self.shutdown_event.set()
 
         if self.scanner_task:
             self.scanner_task.cancel()
@@ -114,6 +207,7 @@ class Application:
                 await self.scanner_task
             except asyncio.CancelledError:
                 pass
+            LOGGER.info("Scanner task shutdown complete")
 
         LOGGER.info("Application shutdown complete")
 
@@ -134,6 +228,7 @@ if __name__ == "__main__":
     logging_level = logging.get_log_level(args.loglevel)
     logging.set_log_level(logging_level)
 
+    # Create global app instance
     app_instance = Application(log_level=args.loglevel)
 
     try:

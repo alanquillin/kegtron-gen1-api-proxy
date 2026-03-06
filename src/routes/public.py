@@ -12,7 +12,60 @@ router = APIRouter(prefix="/api/v1")
 
 @router.get("/health")
 async def health():
-    return "We are up and running!"
+    """Health check endpoint with scanner status"""
+    health_status = {
+        "status": "healthy",
+        "api": "running"
+    }
+    
+    # Try to get scanner status if app instance is available
+    try:
+        import app
+        if hasattr(app, 'app_instance') and app.app_instance:
+            health_status["scanner"] = app.app_instance.get_scanner_status()
+        else:
+            # App module exists but no instance (e.g., in tests)
+            health_status["scanner"] = {"status": "not_initialized", "message": "Application instance not available"}
+    except ImportError:
+        # Running in test environment or standalone API
+        health_status["scanner"] = {"status": "unknown", "message": "Running without scanner module"}
+    except Exception as e:
+        health_status["scanner"] = {"status": "error", "message": str(e)}
+    
+    return health_status
+
+
+@router.get("/scanner/status")
+async def scanner_status():
+    """Get detailed scanner status information"""
+    try:
+        import app
+        if hasattr(app, 'app_instance') and app.app_instance:
+            status = app.app_instance.get_scanner_status()
+            # Add timestamp
+            from datetime import datetime
+            status["checked_at"] = datetime.utcnow().isoformat() + "Z"
+            return status
+        else:
+            return {
+                "status": "not_initialized", 
+                "message": "Application instance not available",
+                "checked_at": datetime.utcnow().isoformat() + "Z"
+            }
+    except ImportError:
+        from datetime import datetime
+        return {
+            "status": "unknown", 
+            "message": "Running without scanner module",
+            "checked_at": datetime.utcnow().isoformat() + "Z"
+        }
+    except Exception as e:
+        from datetime import datetime
+        return {
+            "status": "error", 
+            "message": str(e),
+            "checked_at": datetime.utcnow().isoformat() + "Z"
+        }
 
 
 @router.get("/ping")
