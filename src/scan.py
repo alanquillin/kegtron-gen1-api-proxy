@@ -125,7 +125,7 @@ async def _update_device_db(data: dict) -> bool:
         ports = await Port.query(db, device_id=device_id)
 
         device_dict = copy.deepcopy(data)
-        ports_dict = device_dict.pop("ports", None)
+        ports_dict = device_dict.pop("ports", {})
         if not device:
             device = await Device.create(db, autocommit=False, **device_dict)
         else:

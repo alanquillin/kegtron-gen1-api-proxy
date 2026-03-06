@@ -33,7 +33,8 @@ else:
     api.add_middleware(
         CORSMiddleware,
         allow_origins=CONFIG.get("api.registration_allow_origins", []),
-        allow_methods=["PUT", "OPTIONS"],
+        # Keep origins restricted in production, but permit full REST method usage.
+        allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
         allow_headers=["Content-Type"],
         expose_headers=["Content-Type"],
         max_age=3000,
