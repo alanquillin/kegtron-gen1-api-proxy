@@ -83,7 +83,7 @@ test-watch:
 
 lint:
 	$(ISORT) --check-only src
-	pushd ./src && $(PYLINT) . && popd
+	$(PYLINT) --output-format=colorized src
 	$(BLACK) --check src
 
 format:
