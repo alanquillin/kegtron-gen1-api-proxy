@@ -1,8 +1,10 @@
-from typing import Dict, Any
+from typing import Any, Dict
+
 from pydantic import BaseModel, Field
 
 from schemas import CamelCaseModel
 from schemas.ports import PortUpdateFromDevice
+
 
 class DeviceBase(CamelCaseModel):
     mac: str = Field(None, description="Device MAC address")
@@ -13,8 +15,10 @@ class DeviceBase(CamelCaseModel):
     last_advertisement_timestamp_utc: str = Field(None, description="Last advertisement timestamp")
     ports: Dict[int, PortUpdateFromDevice] = Field(default_factory=dict, description="Device ports")
 
+
 class DeviceCreate(DeviceBase):
     id: str = Field(..., description="Device ID")
+
 
 class DeviceUpdate(DeviceBase):
     pass

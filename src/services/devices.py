@@ -2,9 +2,9 @@ from db.devices import Device
 from lib.units import from_ml
 from lib.util import dict_to_camel_case
 
+
 def transform_device(device: Device):
     device_dict = device.to_dict()
-    
 
     if device.ports:
         ports = {str(port.port_index): port.to_dict() for port in device.ports}

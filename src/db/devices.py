@@ -1,14 +1,13 @@
-from dateutil.parser import parse as parse_datetime
-from typing import Dict, Any, Optional
+import hashlib
+import secrets
+from datetime import datetime
+from typing import Any, Dict, List, Optional
 
-from sqlalchemy import Column, String, Integer, Float, DateTime, ForeignKey, JSON, Boolean, select
+from dateutil.parser import parse as parse_datetime
+from sqlalchemy import JSON, Boolean, Column, DateTime, Float, ForeignKey, Integer, String, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import relationship, selectinload
 from sqlalchemy.sql import func
-from datetime import datetime
-from typing import Dict, Any, Optional, List
-import secrets
-import hashlib
 
 from db import Base, CRUDMixin, DictifiableMixin
 from db.ports import Port
@@ -16,7 +15,8 @@ from lib import logging
 
 LOGGER = logging.getLogger(__name__)
 
-TABLE_NAME = 'devices'
+TABLE_NAME = "devices"
+
 
 class Device(Base, CRUDMixin, DictifiableMixin):
     __tablename__ = TABLE_NAME
@@ -30,7 +30,7 @@ class Device(Base, CRUDMixin, DictifiableMixin):
     last_advertisement_timestamp_utc = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
-    
+
     # Relationship to ports
     ports = relationship("Port", back_populates="device", cascade="all, delete-orphan")
 
@@ -38,20 +38,20 @@ class Device(Base, CRUDMixin, DictifiableMixin):
     async def list(cls, db: AsyncSession):
         result = await db.execute(select(Device).options(selectinload(Device.ports)))
         return result.scalars().all()
-    
+
     @classmethod
     async def create(cls, db: AsyncSession, autocommit=True, **kwargs):
-        if 'last_advertisement_timestamp_utc' in kwargs:
-            timestamp = kwargs['last_advertisement_timestamp_utc']
+        if "last_advertisement_timestamp_utc" in kwargs:
+            timestamp = kwargs["last_advertisement_timestamp_utc"]
             if isinstance(timestamp, str):
-                kwargs['last_advertisement_timestamp_utc'] = parse_datetime(timestamp)
+                kwargs["last_advertisement_timestamp_utc"] = parse_datetime(timestamp)
         return await super().create(db, autocommit=autocommit, **kwargs)
-    
+
     async def update(self, db: AsyncSession, autocommit=True, **kwargs):
-        if 'last_advertisement_timestamp_utc' in kwargs:
-            timestamp = kwargs['last_advertisement_timestamp_utc']
+        if "last_advertisement_timestamp_utc" in kwargs:
+            timestamp = kwargs["last_advertisement_timestamp_utc"]
             if isinstance(timestamp, str):
-                kwargs['last_advertisement_timestamp_utc'] = parse_datetime(timestamp)
+                kwargs["last_advertisement_timestamp_utc"] = parse_datetime(timestamp)
         return await super().update(db, autocommit=autocommit, **kwargs)
 
     @classmethod

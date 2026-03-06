@@ -15,7 +15,7 @@ from datetime import datetime, timedelta, timezone
 from lib import logging
 from lib.config import Config
 
-CONFIG = Config(config_files=["default.json", "api.default.json"], env_prefix="KEGTRON_PROXY")
+CONFIG = Config(config_files=["default.json"], env_prefix="KEGTRON_PROXY")
 logging.init(config=CONFIG)
 LOGGER = logging.getLogger("db_seed")
 

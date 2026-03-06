@@ -173,7 +173,7 @@ class Config(metaclass=ThreadSafeSingleton):
         config_path = os.environ.get(self.gen_key("CONFIG_PATH"))
         if config_path:
             config_files.append(config_path)
-        
+
         base_dir = os.environ.get(self.gen_key("CONFIG_BASE_DIR"), os.path.dirname(os.path.abspath(__file__)) if not base_dir else base_dir)
         self.set("CONFIG_BASE_DIR", base_dir)
 

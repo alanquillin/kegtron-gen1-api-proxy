@@ -12,5 +12,5 @@ fi
 
 if [ "${KEGTRON_PROXY_ROLE}" = "api" ]; then
     poetry run alembic upgrade head && \
-    poetry run python api.py
+    poetry run python app.py
 fi

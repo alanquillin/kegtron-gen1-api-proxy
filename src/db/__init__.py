@@ -1,11 +1,11 @@
 import os
-from typing import AsyncGenerator, Dict, Any, Optional, List, Type, TypeVar
+from typing import Any, AsyncGenerator, Dict, List, Optional, Type, TypeVar
 
-from sqlalchemy import create_engine, select, func
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
-from sqlalchemy.inspection import inspect
-from sqlalchemy.orm import sessionmaker, ColumnProperty
+from sqlalchemy import create_engine, func, select
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.inspection import inspect
+from sqlalchemy.orm import ColumnProperty, sessionmaker
 
 from lib import logging
 from lib.config import Config
@@ -19,6 +19,7 @@ __all__ = [
 CONFIG = Config()
 LOGGER = logging.getLogger(__name__)
 
+
 # Database URL
 def get_db_file_path() -> str:
     path = CONFIG.get("db.path")
@@ -28,30 +29,19 @@ def get_db_file_path() -> str:
     LOGGER.debug("DB file path: %s", path)
     return path
 
+
 DATABASE_URL = f"sqlite:///{get_db_file_path()}"
 ASYNC_DATABASE_URL = f"sqlite+aiosqlite:///{get_db_file_path()}"
 
 # Sync engine and session
-engine = create_engine(
-    DATABASE_URL,
-    connect_args={"check_same_thread": False} if "sqlite" in DATABASE_URL else {},
-    echo=False
-)
+engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False} if "sqlite" in DATABASE_URL else {}, echo=False)
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 # Async engine and session
-async_engine = create_async_engine(
-    ASYNC_DATABASE_URL,
-    echo=False,
-    future=True
-)
+async_engine = create_async_engine(ASYNC_DATABASE_URL, echo=False, future=True)
 
-AsyncSessionLocal = sessionmaker(
-    async_engine, 
-    class_=AsyncSession, 
-    expire_on_commit=False
-)
+AsyncSessionLocal = sessionmaker(async_engine, class_=AsyncSession, expire_on_commit=False)
 
 Base = declarative_base()
 
@@ -60,6 +50,7 @@ async def get_async_db() -> AsyncGenerator[AsyncSession, None]:
     """Async database session for FastAPI dependency injection"""
     async with AsyncSessionLocal() as session:
         yield session
+
 
 def _get_column_value(instance, col_name):
     try:
@@ -70,16 +61,19 @@ def _get_column_value(instance, col_name):
                 return getattr(instance, attr)
     raise AttributeError
 
-T = TypeVar('T', bound='CRUDMixin')
+
+T = TypeVar("T", bound="CRUDMixin")
+
+
 class CRUDMixin:
     """Mixin class providing CRUD operations for SQLAlchemy models"""
-    
+
     @classmethod
     async def count_all(cls: Type[T], db: AsyncSession):
         count_statement = select(func.count()).select_from(cls)
         result = await db.execute(count_statement)
         return result.scalar_one()
-    
+
     @classmethod
     async def list(cls, db: AsyncSession) -> List[T]:
         result = await db.execute(select(cls))
@@ -94,24 +88,16 @@ class CRUDMixin:
                 query = query.options(option)
         result = await db.execute(query)
         return result.scalar_one_or_none()
-    
+
     @classmethod
     async def query(cls: Type[T], db: AsyncSession, **kwargs):
         q = select(cls).filter_by(**kwargs)
 
         result = await db.execute(q)
         return result.unique().scalars().all()
-    
+
     @classmethod
-    async def get_multi(
-        cls: Type[T], 
-        db: AsyncSession, 
-        *, 
-        skip: int = 0, 
-        limit: int = 100,
-        filters: list = None,
-        options: list = None
-    ) -> List[T]:
+    async def get_multi(cls: Type[T], db: AsyncSession, *, skip: int = 0, limit: int = 100, filters: list = None, options: list = None) -> List[T]:
         """Get multiple records (async)"""
         query = select(cls)
         if filters:
@@ -123,7 +109,7 @@ class CRUDMixin:
         query = query.offset(skip).limit(limit)
         result = await db.execute(query)
         return result.scalars().all()
-        
+
     @classmethod
     async def create(cls: Type[T], db: AsyncSession, autocommit=True, **kwargs) -> T:
         """Create a new record (async)"""
@@ -136,9 +122,9 @@ class CRUDMixin:
             except Exception:
                 await db.rollback()
                 raise
-        
+
         return db_obj
-    
+
     async def update(self: T, db: AsyncSession, autocommit=True, **kwargs) -> T:
         """Update an existing record (async)"""
         for key, value in kwargs.items():
@@ -153,7 +139,7 @@ class CRUDMixin:
                 await db.rollback()
                 raise
         return self
-    
+
     async def delete(self: T, db: AsyncSession, autocommit=True) -> bool:
         """Delete a record (async)"""
         await db.delete(self)
@@ -164,12 +150,13 @@ class CRUDMixin:
                 await db.rollback()
                 raise
         return True
-    
+
     @classmethod
     async def exists(cls: Type[T], id: Any, db: AsyncSession) -> bool:
         """Check if a record exists by ID (async)"""
         result = await db.execute(select(cls.id).where(cls.id == id))
         return result.scalar_one_or_none() is not None
+
 
 class DictifiableMixin:
     def to_dict(self, include_relationships=None, ignore_properties=None):

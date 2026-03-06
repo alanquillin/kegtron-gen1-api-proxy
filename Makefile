@@ -35,10 +35,11 @@ export KEGTRON_SCANNER_CONFIG_BASE_DIR=$(CURDIR)/config
 export KEGTRON_PROXY_DB_BASE_DIR=$(CURDIR)/data
 export KEGTRON_SCANNER_DB_BASE_DIR=$(CURDIR)/data
 export KEGTRON_PROXY_STATIC_FILES_DIR=$(CURDIR)/src/static
+export KEGTRON_PROXY_ENV=development
 endif
 
 
-.PHONY: depends update-depends run-dev-local run-local lint format create-migration
+.PHONY: depends update-depends run-dev-local run-local lint format create-migration test test-unit test-api test-all test-coverage
 
 # dependency targets
 
@@ -55,23 +56,42 @@ seed_data: export PYTHONPATH=$(CURDIR)/src:$PYTHONPATH
 seed_data:
 	$(PYTHON) data/seed_data.py
 
+run-dev-local: export KEGTRON_PROXY_LOG_LEVEL=DEBUG
 run-dev-local: run-db-migrations seed_data
-	$(PYTHON) src/api.py --log DEBUG
+	$(PYTHON) src/app.py
 
 run-local: run-db-migrations
-	$(PYTHON) src/api.py
+	$(PYTHON) src/app.py
 
 scan:
 	$(PYTHON) src/scan.py 
 
+scan_dev: export KEGTRON_SCANNER_LOG_LEVEL=DEBUG
 scan-dev:
-	$(PYTHON) src/scan.py --log DEBUG
+	$(PYTHON) src/scan.py
 
 # Testing and Syntax targets
 
+test: test-all
+
+test-all:
+	$(PYTEST) test
+
+test-unit:
+	$(PYTEST) test/unit
+
+test-api:
+	$(PYTEST) test/api
+
+test-coverage:
+	$(PYTEST) test --cov=src --cov-report=term-missing --cov-report=html:htmlcov
+
+test-watch:
+	$(PYTEST) test -f
+
 lint:
 	$(ISORT) --check-only src
-	pushd ./src && $(PYLINT) . && popd
+	$(PYLINT) --output-format=colorized src
 	$(BLACK) --check src
 
 format:

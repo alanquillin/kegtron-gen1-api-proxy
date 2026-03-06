@@ -2,15 +2,66 @@
   "__conversion_schema": {
     "logging.colored": "bool",
     "logging.json": "bool",
-    "logging.levels": "dict"
+    "logging.levels": "dict",
+    "proxy.port": "int",
+    "proxy.enabled": "bool",
+    "force_device_update_after_sec": "int",
+    "api.port": "int",
+    "api.cookies.secure": "bool",
+    "api.cookies.http_only": "bool",
+    "auth.initial_user.set_password": "bool",
+    "auth.oidc.google.enabled": "bool",
+    "scanner.enabled": "bool"
+  },
+  "api": {
+    "host": "localhost",
+    "port": 8080,
+    "cookies": {
+      "secure": true,
+      "http_only": true,
+      "samesite": "lax"
+    }
+  },
+  "app_id": "kegtron-gen1-api-proxy",
+  "auth": {
+    "initial_user": {
+      "email": "default_admin@acme.fake",
+      "password": "initial_password",
+      "set_password": true
+    },
+    "oidc": {
+      "google": {
+        "enabled": false,
+        "discovery_url": "https://accounts.google.com/.well-known/openid-configuration"
+      }
+    }
   },
   "db": {
     "path": "kegtron_proxy.db"
   },
   "logging": {
-    "level": "DEBUG",
+    "level": "INFO",
     "colored": true,
-    "json": false
+    "json": false,
+    "levels": {
+      "bleak.backends.corebluetooth.CentralManagerDelegate": "INFO",
+      "bleak": "INFO",
+      "bleak.backends.corebluetooth.client": "INFO",
+      "bleak.backends.corebluetooth.PeripheralDelegate": "INFO",
+      "sqlalchemy.engine": "WARNING",
+      "aiosqlite": "INFO"
+    }
   },
-  "default_display_unit": "gal"
+  "proxy": {
+    "host": "localhost",
+    "port": 8080,
+    "scheme": "http",
+    "enabled": false
+  },
+  "default_display_unit": "gal",
+  "scanner": {
+    "backend": "db",
+    "force_device_update_after_sec": 300,
+    "enabled": true
+  }
 }
