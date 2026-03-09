@@ -8,7 +8,7 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from lib import logging
 from lib.config import Config
-from routes import devices, ports, public, rpc
+from routes import auth, devices, ports, public, rpc, service_accounts, users
 
 CONFIG = Config()
 LOGGER = logging.getLogger(__name__)
@@ -77,10 +77,13 @@ def get_static_dir() -> str:
     return static_dir
 
 
+api.include_router(auth.router)
 api.include_router(rpc.router_devices)
 api.include_router(rpc.router_ports)
 api.include_router(devices.router)
 api.include_router(ports.router)
 api.include_router(public.router)
+api.include_router(users.router)
+api.include_router(service_accounts.router)
 
 api.mount("/", StaticFiles(directory=get_static_dir(), html=True), name="static")

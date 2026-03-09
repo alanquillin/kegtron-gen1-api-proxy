@@ -39,7 +39,7 @@ export KEGTRON_PROXY_ENV=development
 endif
 
 
-.PHONY: depends update-depends run-dev-local run-local lint format create-migration test test-unit test-api test-all test-coverage
+.PHONY: depends update-depends run-dev-local run-local lint format create-migration test test-unit test-api test-integration test-coverage
 
 # dependency targets
 
@@ -72,7 +72,7 @@ scan-dev:
 
 # Testing and Syntax targets
 
-test: test-all
+test: test-ui test-api test-integration
 
 test-all:
 	$(PYTEST) test
@@ -82,6 +82,15 @@ test-unit:
 
 test-api:
 	$(PYTEST) test/api
+
+test-integration:
+	$(PYTEST) test/integration -v
+
+test-integration-auth:
+	$(PYTEST) test/integration/test_auth_integration.py -v
+
+test-integration-quick:
+	$(PYTEST) test/integration -x --tb=short
 
 test-coverage:
 	$(PYTEST) test --cov=src --cov-report=term-missing --cov-report=html:htmlcov
@@ -105,3 +114,37 @@ create-migration:
 
 run-db-migrations:
 	$(ALEMBIC) upgrade head
+
+# Help target
+help:
+	@echo "Available make targets:"
+	@echo ""
+	@echo "  Dependencies:"
+	@echo "    depends          - Install project dependencies"
+	@echo "    update-depends   - Update project dependencies"
+	@echo ""
+	@echo "  Running the app:"
+	@echo "    run-local        - Run the app locally"
+	@echo "    run-dev-local    - Run the app in development mode with debug logging"
+	@echo "    scan             - Run the scanner"
+	@echo "    scan-dev         - Run the scanner with debug logging"
+	@echo ""
+	@echo "  Testing:"
+	@echo "    test             - Run all tests (alias for test-all)"
+	@echo "    test-all         - Run all tests"
+	@echo "    test-unit        - Run unit tests only"
+	@echo "    test-api         - Run API tests (mocked)"
+	@echo "    test-integration - Run integration tests against real API server"
+	@echo "    test-integration-auth - Run auth integration tests only"
+	@echo "    test-integration-quick - Run integration tests, stop on first failure"
+	@echo "    test-coverage    - Run all tests with coverage report"
+	@echo "    test-watch       - Run tests in watch mode"
+	@echo ""
+	@echo "  Code quality:"
+	@echo "    lint             - Run linters (isort, pylint, black)"
+	@echo "    format           - Format code with isort and black"
+	@echo ""
+	@echo "  Database:"
+	@echo "    create-migration - Create a new database migration"
+	@echo "    run-db-migrations - Run database migrations"
+	@echo "    seed_data        - Seed the database with test data"

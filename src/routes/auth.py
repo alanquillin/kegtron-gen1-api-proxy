@@ -12,8 +12,8 @@ from fastapi.responses import RedirectResponse
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from db.users import Users as UsersDB
-from dependencies.auth import get_db_session
+from db import get_async_db
+from db.users import User as UsersDB
 from lib import logging
 from lib.config import Config
 
@@ -30,7 +30,7 @@ class LoginRequest(BaseModel):
 
 
 @router.post("/login")
-async def login(request: Request, login_data: LoginRequest, db_session: AsyncSession = Depends(get_db_session)):
+async def login(request: Request, login_data: LoginRequest, db_session: AsyncSession = Depends(get_async_db)):
     """
     Password-based login endpoint.
     Sets session cookie on successful authentication.

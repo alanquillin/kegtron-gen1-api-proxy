@@ -8,7 +8,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 
 from db.users import User as UsersDB
-from dependencies.auth import AuthUser, get_db_session, require_admin, require_user
+from db import get_async_db
+from dependencies.auth import AuthUser, require_admin, require_user
 from lib import logging
 from schemas.users import UserCreate, UserUpdate
 from services.users import UserService
@@ -18,7 +19,7 @@ LOGGER = logging.getLogger(__name__)
 
 
 @router.get("/current", response_model=dict)
-async def get_current_user(current_user: AuthUser = Depends(require_user), db_session: AsyncSession = Depends(get_db_session)):
+async def get_current_user(current_user: AuthUser = Depends(require_user), db_session: AsyncSession = Depends(get_async_db)):
     """Get current authenticated user"""
     if current_user.service_account:
         return None
@@ -31,7 +32,7 @@ async def get_current_user(current_user: AuthUser = Depends(require_user), db_se
 
 
 @router.get("", response_model=List[dict])
-async def list_users(current_user: AuthUser = Depends(require_admin), db_session: AsyncSession = Depends(get_db_session)):
+async def list_users(current_user: AuthUser = Depends(require_admin), db_session: AsyncSession = Depends(get_async_db)):
     """List all users (admin only)"""
     users = await UsersDB.query(db_session)
     return [await UserService.transform_response(u, current_user) for u in users]
@@ -41,7 +42,7 @@ async def list_users(current_user: AuthUser = Depends(require_admin), db_session
 async def create_user(
     user_data: UserCreate,
     current_user: AuthUser = Depends(require_admin),
-    db_session: AsyncSession = Depends(get_db_session),
+    db_session: AsyncSession = Depends(get_async_db),
 ):
     """Create a new user (admin only)"""
     data = user_data.model_dump(exclude_unset=True)
@@ -55,7 +56,7 @@ async def create_user(
 async def get_user(
     user_id: str,
     current_user: AuthUser = Depends(require_admin),
-    db_session: AsyncSession = Depends(get_db_session),
+    db_session: AsyncSession = Depends(get_async_db),
 ):
     """Get a specific user (admin only)"""
     user = await UsersDB.get_by_pkey(db_session, user_id)
@@ -71,7 +72,7 @@ async def update_user(
     user_id: str,
     user_data: UserUpdate,
     current_user: AuthUser = Depends(require_user),
-    db_session: AsyncSession = Depends(get_db_session),
+    db_session: AsyncSession = Depends(get_async_db),
 ):
     """Update a user"""
     # Users can only update themselves unless they're admin
@@ -102,7 +103,7 @@ async def update_user(
 async def delete_user(
     user_id: str,
     current_user: AuthUser = Depends(require_admin),
-    db_session: AsyncSession = Depends(get_db_session),
+    db_session: AsyncSession = Depends(get_async_db),
 ):
     """Delete a user (admin only)"""
     user = await UsersDB.get_by_pkey(db_session, user_id)
@@ -117,7 +118,7 @@ async def delete_user(
 async def get_user_api_key(
     user_id: str,
     current_user: AuthUser = Depends(require_user),
-    db_session: AsyncSession = Depends(get_db_session),
+    db_session: AsyncSession = Depends(get_async_db),
 ):
     """Get user's API key"""
     # Users can only get their own API key unless they're admin
@@ -135,7 +136,7 @@ async def get_user_api_key(
 async def generate_user_api_key(
     user_id: str,
     current_user: AuthUser = Depends(require_user),
-    db_session: AsyncSession = Depends(get_db_session),
+    db_session: AsyncSession = Depends(get_async_db),
 ):
     """Generate a new API key for user"""
     # Users can only generate their own API key unless they're admin
@@ -157,7 +158,7 @@ async def generate_user_api_key(
 async def delete_user_api_key(
     user_id: str,
     current_user: AuthUser = Depends(require_user),
-    db_session: AsyncSession = Depends(get_db_session),
+    db_session: AsyncSession = Depends(get_async_db),
 ):
     """Delete user's API key"""
     # Users can only delete their own API key unless they're admin

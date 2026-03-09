@@ -8,7 +8,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 
 from db.service_accounts import ServiceAccount as ServiceAccountsDB
-from dependencies.auth import AuthUser, get_db_session, require_admin, require_user
+from db import get_async_db
+from dependencies.auth import AuthUser, require_admin, require_user
 from lib import logging
 from schemas.service_accounts import ServiceAccountCreate, ServiceAccountUpdate
 from services.service_accounts import ServiceAccountService
@@ -18,7 +19,7 @@ LOGGER = logging.getLogger(__name__)
 
 
 @router.get("", response_model=List[dict])
-async def list_service_accounts(current_user: AuthUser = Depends(require_admin), db_session: AsyncSession = Depends(get_db_session)):
+async def list_service_accounts(current_user: AuthUser = Depends(require_admin), db_session: AsyncSession = Depends(get_async_db)):
     """List all service accounts (admin only)"""
     service_accounts = await ServiceAccountsDB.list(db_session)
     return [await ServiceAccountService.transform_response(s) for s in service_accounts]
@@ -28,7 +29,7 @@ async def list_service_accounts(current_user: AuthUser = Depends(require_admin),
 async def create_service_account(
     service_account_data: ServiceAccountCreate,
     current_user: AuthUser = Depends(require_admin),
-    db_session: AsyncSession = Depends(get_db_session),
+    db_session: AsyncSession = Depends(get_async_db),
 ):
     """Create a new service account (admin only)"""
     data = service_account_data.model_dump(exclude_unset=True)
@@ -45,7 +46,7 @@ async def create_service_account(
 async def get_service_account(
     service_account_id: str,
     current_user: AuthUser = Depends(require_admin),
-    db_session: AsyncSession = Depends(get_db_session),
+    db_session: AsyncSession = Depends(get_async_db),
 ):
     """Get a specific service account (admin only)"""
     service_account = await ServiceAccountsDB.get_by_pkey(db_session, service_account_id)
@@ -61,7 +62,7 @@ async def update_service_account(
     service_account_id: str,
     service_account_data: ServiceAccountUpdate,
     current_user: AuthUser = Depends(require_user),
-    db_session: AsyncSession = Depends(get_db_session),
+    db_session: AsyncSession = Depends(get_async_db),
 ):
     """Update a service account (admin only)"""
     service_account = await ServiceAccountsDB.get_by_pkey(db_session, service_account_id)
@@ -82,7 +83,7 @@ async def update_service_account(
 async def delete_service_account(
     service_account_id: str,
     current_user: AuthUser = Depends(require_admin),
-    db_session: AsyncSession = Depends(get_db_session),
+    db_session: AsyncSession = Depends(get_async_db),
 ):
     """Delete a service account (admin only)"""
     service_account = await ServiceAccountsDB.get_by_pkey(db_session, service_account_id)
@@ -97,7 +98,7 @@ async def delete_service_account(
 async def generate_service_account_api_key(
     service_account_id: str,
     current_user: AuthUser = Depends(require_user),
-    db_session: AsyncSession = Depends(get_db_session),
+    db_session: AsyncSession = Depends(get_async_db),
 ):
     """Generate a new API key for service account"""
     # Users can only generate their own API key unless they're admin
@@ -116,7 +117,7 @@ async def generate_service_account_api_key(
 async def delete_service_account_api_key(
     service_account_id: str,
     current_user: AuthUser = Depends(require_user),
-    db_session: AsyncSession = Depends(get_db_session),
+    db_session: AsyncSession = Depends(get_async_db),
 ):
     """Delete service account's API key (admin only)"""
     service_account = await ServiceAccountsDB.get_by_pkey(db_session, service_account_id)

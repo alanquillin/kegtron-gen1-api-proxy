@@ -24,6 +24,12 @@ LOGGER = logging.getLogger(__name__)
 
 # Database URL
 def get_db_file_path() -> str:
+    # Check for test database path override
+    test_db_path = os.environ.get("TEST_DATABASE_PATH")
+    if test_db_path:
+        LOGGER.debug("Using test DB file path: %s", test_db_path)
+        return test_db_path
+    
     path = CONFIG.get("db.path")
     base_dir = CONFIG.get("db.base_dir")
     if base_dir:

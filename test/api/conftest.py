@@ -40,6 +40,8 @@ with patch.dict(os.environ, {'KEGTRON_PROXY_STATIC_FILES_DIR': temp_static}):
     from db import Base, get_async_db
 from dependencies.auth import get_optional_user, require_user, require_admin, AuthUser
 
+# Session middleware is already added in api.py, no need to add it again
+
 
 @pytest.fixture(scope="session")
 def event_loop():
