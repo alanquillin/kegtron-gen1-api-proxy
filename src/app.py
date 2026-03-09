@@ -21,6 +21,8 @@ import uvicorn
 
 import scan as kegtron_ble_scanner
 from api import api
+from db import AsyncSessionLocal
+from db.users import User as UsersDB
 
 # Global application instance for access from other modules
 app_instance = None
@@ -37,38 +39,34 @@ class Application:
         self.shutdown_event = asyncio.Event()
         self.scanner_restart_delay = 5  # seconds to wait before restarting scanner
 
-    # async def initialize_first_user(self):
-    #     """Create initial user if no users exist"""
-    #     from db import async_session_scope
-    #     from db.users import Users as UsersDB
+    async def initialize_first_user(self):
+        """Create initial user if no users exist"""
 
-    #     async with async_session_scope(CONFIG) as db_session:
-    #         users = await UsersDB.query(db_session)
+        async with AsyncSessionLocal() as db:
+            users = await UsersDB.query(db)
 
-    #         if not users:
-    #             init_user_email = CONFIG.get("auth.initial_user.email")
-    #             set_init_user_pass = CONFIG.get("auth.initial_user.set_password")
-    #             init_user_fname = CONFIG.get("auth.initial_user.first_name")
-    #             init_user_lname = CONFIG.get("auth.initial_user.last_name")
-    #             google_sso_enabled = CONFIG.get("auth.oidc.google.enabled")
+            if not users:
+                init_user_email = CONFIG.get("auth.initial_user.email")
+                set_init_user_pass = CONFIG.get("auth.initial_user.set_password")
+                init_user_fname = CONFIG.get("auth.initial_user.first_name")
+                init_user_lname = CONFIG.get("auth.initial_user.last_name")
+                api_key = CONFIG.get("auth.initial_user.api_key")
 
-    #             if not google_sso_enabled and not set_init_user_pass:
-    #                 LOGGER.error("Cannot create an initial user! auth.initial_user.set_password and google authentication is disabled!")
-    #                 sys.exit(1)
+                data = {"email": init_user_email, "admin": True}
+                if init_user_fname:
+                    data["first_name"] = init_user_fname
+                if init_user_lname:
+                    data["last_name"] = init_user_lname
+                if api_key:
+                    data["api_key"] = api_key
+                
+                LOGGER.info("No users exist, creating initial user: %s", data)
+                if set_init_user_pass:
+                    data["password"] = CONFIG.get("auth.initial_user.password")
+                    LOGGER.warning("Creating initial user with a pre-configured password.")
+                    LOGGER.warning("PLEASE REMEMBER TO LOG IN AND CHANGE IT ASAP!!")
 
-    #             data = {"email": init_user_email, "admin": True}
-    #             if init_user_fname:
-    #                 data["first_name"] = init_user_fname
-    #             if init_user_lname:
-    #                 data["last_name"] = init_user_lname
-
-    #             LOGGER.info("No users exist, creating initial user: %s", data)
-    #             if set_init_user_pass:
-    #                 data["password"] = CONFIG.get("auth.initial_user.password")
-    #                 LOGGER.warning("Creating initial user with a pre-configured password.")
-    #                 LOGGER.warning("PLEASE REMEMBER TO LOG IN AND CHANGE IT ASAP!!")
-
-    #             await UsersDB.create(db_session, **data)
+                await UsersDB.create(db, **data)
 
     def get_scanner_status(self):
         """Get the current scanner status for health checks"""
@@ -170,8 +168,8 @@ class Application:
         The method runs until interrupted (Ctrl+C) or cancelled.
         """
         # Initialize first user if needed
-        # LOGGER.info("Checking for initial user...")
-        # await self.initialize_first_user()
+        LOGGER.info("Checking for initial user...")
+        await self.initialize_first_user()
 
         scanner_enabled = CONFIG.get("scanner.enabled")
         if scanner_enabled:

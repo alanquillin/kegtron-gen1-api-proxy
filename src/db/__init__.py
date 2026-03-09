@@ -14,6 +14,8 @@ __all__ = [
     "Base",
     "devices",
     "ports",
+    "users",
+    "service_accounts"
 ]
 
 CONFIG = Config()

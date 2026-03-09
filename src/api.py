@@ -1,8 +1,10 @@
 import os
+import uuid
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from starlette.middleware.sessions import SessionMiddleware
 
 from lib import logging
 from lib.config import Config
@@ -11,11 +13,27 @@ from routes import devices, ports, public, rpc
 CONFIG = Config()
 LOGGER = logging.getLogger(__name__)
 
+
+_secret_key = CONFIG.get("app.secret_key")
+if not _secret_key:
+    _secret_key = str(uuid.uuid4())
+    LOGGER.warning("No 'app.secret_key' configured. Sessions will not persist across restarts. Set 'app.secret_key' in config for production use.")
+
 api = FastAPI(
     title="Kegtron Gen1 API Proxy",
     version="0.1.0",
     docs_url="/api/docs",
     redoc_url="/api/redoc" if CONFIG.get("ENV") == "development" else None,
+)
+
+# Session middleware - must be added before any dependencies use it
+api.add_middleware(
+    SessionMiddleware,
+    secret_key=_secret_key,
+    session_cookie="session",
+    max_age=None,  # Session expires when browser closes
+    same_site=CONFIG.get("api.cookies.samesite", "lax"),
+    https_only=CONFIG.get("api.cookies.secure", True),
 )
 
 # CORS middleware

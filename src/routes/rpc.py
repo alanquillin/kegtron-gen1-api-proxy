@@ -15,6 +15,7 @@ from lib import logging
 from lib.config import Config
 from lib.units import to_ml
 from schemas.rpc import ResetVolumeRequest
+from dependencies.auth import AuthUser, require_user
 
 LOGGER = logging.getLogger(__name__)
 CONFIG = Config()
@@ -25,7 +26,7 @@ router_devices = APIRouter(prefix="/api/v1/devices/{device_id}/rpc")
 
 
 @router_devices.post("/Kegtron.UnlockWriteAll")
-async def unlock_write_all_rpc(device_id: str, db: AsyncSession = Depends(get_async_db)):
+async def unlock_write_all_rpc(device_id: str, db: AsyncSession = Depends(get_async_db), current_user: AuthUser = Depends(require_user)):
     device = await deviceDB.get(device_id, db)
     if not device:
         raise HTTPException(status_code=404, detail=f"Unknown device with id {device_id}")
@@ -36,7 +37,7 @@ async def unlock_write_all_rpc(device_id: str, db: AsyncSession = Depends(get_as
 
 
 @router_ports.post("/Kegtron.UnlockWrite")
-async def unlock_write_rpc(device_id: str, port_index: int, db: AsyncSession = Depends(get_async_db)):
+async def unlock_write_rpc(device_id: str, port_index: int, db: AsyncSession = Depends(get_async_db), current_user: AuthUser = Depends(require_user)):
     device = await deviceDB.get(device_id, db=db)
     if not device:
         raise HTTPException(status_code=404, detail=f"Unknown device with id {device_id}")
@@ -53,7 +54,7 @@ async def unlock_write_rpc(device_id: str, port_index: int, db: AsyncSession = D
 
 
 @router_ports.post("/Kegtron.ResetVolume")
-async def reset_volume_rpc(device_id: str, port_index: int, request: ResetVolumeRequest, db: AsyncSession = Depends(get_async_db)):
+async def reset_volume_rpc(device_id: str, port_index: int, request: ResetVolumeRequest, db: AsyncSession = Depends(get_async_db), current_user: AuthUser = Depends(require_user)):
     # raise HTTPException(status_code=405, detail="Method not yet implemented")
     device = await deviceDB.get(device_id, db)
     if not device:

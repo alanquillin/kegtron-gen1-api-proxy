@@ -8,6 +8,7 @@ from sqlalchemy import JSON, Boolean, Column, DateTime, Float, ForeignKey, Integ
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import relationship, selectinload
 from sqlalchemy.sql import func
+from sqlalchemy.schema import Index
 
 from db import Base, CRUDMixin, DictifiableMixin
 from db.ports import Port
@@ -33,6 +34,10 @@ class Device(Base, CRUDMixin, DictifiableMixin):
 
     # Relationship to ports
     ports = relationship("Port", back_populates="device", cascade="all, delete-orphan")
+
+    __table_args__ = (
+        Index("ix_devices_mac", mac, unique=True),
+    )
 
     @classmethod
     async def list(cls, db: AsyncSession):

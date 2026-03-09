@@ -27,13 +27,8 @@
     "initial_user": {
       "email": "default_admin@acme.fake",
       "password": "initial_password",
-      "set_password": true
-    },
-    "oidc": {
-      "google": {
-        "enabled": false,
-        "discovery_url": "https://accounts.google.com/.well-known/openid-configuration"
-      }
+      "set_password": true,
+      "api_key": "dda7aed5-a505-40ab-a41f-1eef7832336c"
     }
   },
   "db": {

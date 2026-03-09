@@ -12,6 +12,7 @@ from lib import logging
 from lib.config import Config
 from schemas.devices import DeviceCreate, DeviceUpdate
 from services.devices import transform_device
+from dependencies.auth import AuthUser, require_user
 
 LOGGER = logging.getLogger(__name__)
 CONFIG = Config()
@@ -33,6 +34,8 @@ async def _create_device_with_ports(device_dict: dict, db: AsyncSession):
                 LOGGER.debug("display unit not provided, setting to system default: %s", display_unit)
                 port_dict["display_unit"] = display_unit
             port_dict["device_id"] = dev.id
+            if "display_unit" not in port_dict:
+                port_dict["display_unit"] = "mL"
             p = await portsDB.create(db, autocommit=False, **port_dict)
             new_ports.append(p)
     try:
@@ -75,7 +78,7 @@ async def get_device(device_id: str, db: AsyncSession = Depends(get_async_db)) -
     return transform_device(device)
 
 
-async def update_device_ports(device_id: str, ports_dict: dict, ports: list[portsDB], db: AsyncSession, create_on_not_found=False):
+async def update_device_ports(device_id: str, ports_dict: dict, ports: list[portsDB], db: AsyncSession = Depends(get_async_db), create_on_not_found: bool =False, current_user: AuthUser = Depends(require_user)):
     for idx, port_dict in ports_dict.items():
         idx = int(idx)
         LOGGER.debug("Upserting port with data: %s", port_dict)
@@ -96,6 +99,8 @@ async def update_device_ports(device_id: str, ports_dict: dict, ports: list[port
                         LOGGER.debug("display unit not provided, setting to system default: %s", display_unit)
                         port_dict["display_unit"] = display_unit
                     port_dict["device_id"] = device_id
+                    if "display_unit" not in port_dict:
+                        port_dict["display_unit"] = "mL"
                     await portsDB.create(db, autocommit=False, **port_dict)
                 else:
                     raise HTTPException(status_code=404, detail=f"Port with index {idx} for device {device_id} not found")
@@ -106,7 +111,7 @@ async def update_device_ports(device_id: str, ports_dict: dict, ports: list[port
 
 
 @router.put("/{device_id}")
-async def update_device(device_id: str, device_data: DeviceUpdate, db: AsyncSession = Depends(get_async_db)):
+async def update_device(device_id: str, device_data: DeviceUpdate, db: AsyncSession = Depends(get_async_db), current_user: AuthUser = Depends(require_user)):
     device = await deviceDB.get(device_id, db)
     if not device:
         # Create new device if doesn't exist
@@ -136,7 +141,7 @@ async def update_device(device_id: str, device_data: DeviceUpdate, db: AsyncSess
 
 
 @router.patch("/{device_id}")
-async def update_device(device_id: str, device_data: DeviceUpdate, db: AsyncSession = Depends(get_async_db)):
+async def update_device(device_id: str, device_data: DeviceUpdate, db: AsyncSession = Depends(get_async_db), current_user: AuthUser = Depends(require_user)):
     device = await deviceDB.get(device_id, db)
     if not device:
         # Create new device if doesn't exist

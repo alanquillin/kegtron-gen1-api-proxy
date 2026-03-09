@@ -5,6 +5,7 @@ from sqlalchemy import JSON, Boolean, Column, DateTime, Float, ForeignKey, Integ
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
+from sqlalchemy.schema import Index
 
 from db import Base, CRUDMixin, DictifiableMixin
 from lib import logging
@@ -34,6 +35,11 @@ class Port(Base, CRUDMixin, DictifiableMixin):
     # Relationship back to device
     device = relationship("Device", back_populates="ports")
 
+    __table_args__ = (
+        Index("ix_ports_device_id", device_id, unique=False),
+        Index("ix_ports_device_id_port_index", device_id, port_index, unique=True),
+    )
+
     def to_dict(self, *args, **kwargs) -> Dict[str, Any]:
         return super().to_dict(*args, ignore_properties=["data"], **kwargs)
 
@@ -46,8 +52,6 @@ class Port(Base, CRUDMixin, DictifiableMixin):
 
     @classmethod
     async def create(cls, db: AsyncSession, autocommit=True, **kwargs):
-        # TODO override create method to check conditions:
-        # - Device_id + port_index - must be unique
         if "last_update_timestamp_utc" in kwargs:
             timestamp = kwargs["last_update_timestamp_utc"]
             if isinstance(timestamp, str):
@@ -55,8 +59,6 @@ class Port(Base, CRUDMixin, DictifiableMixin):
         return await super().create(db, autocommit=autocommit, **kwargs)
 
     async def update(self, db: AsyncSession, autocommit=True, **kwargs):
-        # TODO override create method to check conditions:
-        # - Device_id + port_index - must be unique
         if "last_update_timestamp_utc" in kwargs:
             timestamp = kwargs["last_update_timestamp_utc"]
             if isinstance(timestamp, str):

@@ -10,6 +10,7 @@ from db.ports import Port as portsDB
 from lib import logging
 from lib.config import Config
 from schemas.ports import PortUpdate
+from dependencies.auth import AuthUser, require_user
 
 LOGGER = logging.getLogger(__name__)
 CONFIG = Config()
@@ -18,7 +19,7 @@ router = APIRouter(prefix="/api/v1/devices/{device_id}/ports")
 
 
 @router.patch("/{port_index}")
-async def update_device(device_id: str, port_index: int, port_data: PortUpdate, db: AsyncSession = Depends(get_async_db)):
+async def update_device(device_id: str, port_index: int, port_data: PortUpdate, db: AsyncSession = Depends(get_async_db), current_user: AuthUser = Depends(require_user)):
     port = await Port.get_by_device_id_and_index(device_id, port_index, db)
 
     if not port:

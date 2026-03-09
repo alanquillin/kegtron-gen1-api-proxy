@@ -139,6 +139,7 @@ async def _update_device_db(data: dict) -> bool:
                     break
             if not port:
                 port_dict["device_id"] = device_id
+                port_dict["display_unit"] = "mL"
                 port = await Port.create(db, autocommit=False, **port_dict)
             else:
                 await port.update(db, autocommit=False, **port_dict)
