@@ -150,13 +150,10 @@ async def client(async_db_session, mock_config, mock_auth_user):
     async def override_require_user():
         return mock_auth_user
     
-    async def override_require_admin():
-        return mock_auth_user  # Default to regular user, tests can override
-    
     api.dependency_overrides[get_async_db] = override_get_db
     api.dependency_overrides[get_optional_user] = override_get_user
     api.dependency_overrides[require_user] = override_require_user
-    api.dependency_overrides[require_admin] = override_require_admin
+    # Don't override require_admin - let it use the actual dependency which checks admin status
     
     # Mock the config
     with patch('api.CONFIG', mock_config):

@@ -49,8 +49,9 @@ def run_api_server(port: int, db_url: str, config_dir: str, static_dir: str):
     os.environ["TEST_DATABASE_PATH"] = db_path
     os.environ["KEGTRON_PROXY_CONFIG_BASE_DIR"] = config_dir
     os.environ["KEGTRON_PROXY_STATIC_FILES_DIR"] = static_dir
-    os.environ["ENV"] = "test"
-    os.environ["app.secret_key"] = "test-secret-key-for-integration-tests"
+    os.environ["KEGTRON_PROXY_ENV"] = "test"
+    os.environ["KEGTRON_PROXY_APP_SECRET_KEY"] = "test-secret-key-for-integration-tests"
+    os.environ["KEGTRON_PROXY_API_COOKIES_SECURE"] = "False"  # Explicit False string
     
     # Add src to path
     sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
@@ -64,7 +65,12 @@ def run_api_server(port: int, db_url: str, config_dir: str, static_dir: str):
     alembic_cfg.set_main_option("sqlalchemy.url", db_url)
     command.upgrade(alembic_cfg, "head")
     
-    # Import API after setting environment
+    # Import and configure Config BEFORE importing API
+    from lib.config import Config
+    config = Config()
+    config.setup(env_prefix="KEGTRON_PROXY", config_files=["default.json"], base_dir=config_dir)
+    
+    # Import API after setting environment and config
     from api import api
     
     # Run the server
@@ -100,7 +106,21 @@ def test_config_dir():
     # Create a minimal config file
     config_file = os.path.join(config_dir, "default.json")
     with open(config_file, "w") as f:
-        f.write('{"ENV": "test", "default_display_unit": "mL"}')
+        # Disable https_only for cookies since tests use HTTP
+        import json
+        config_data = {
+            "ENV": "test",
+            "default_display_unit": "mL",
+            "app": {
+                "secret_key": "test-secret-key"
+            },
+            "api": {
+                "cookies": {
+                    "secure": False
+                }
+            }
+        }
+        f.write(json.dumps(config_data))
     
     yield config_dir
     
@@ -235,7 +255,13 @@ async def async_api_client(api_base_url, api_server_process):
     # Ensure server is running
     _ = api_server_process
     
-    async with httpx.AsyncClient(base_url=api_base_url, timeout=10.0) as client:
+    # Create client with cookie jar support
+    async with httpx.AsyncClient(
+        base_url=api_base_url, 
+        timeout=10.0,
+        follow_redirects=False,  # Don't auto-follow redirects (causes issues with POST to logout)
+        cookies=httpx.Cookies()  # Explicitly create a cookie jar
+    ) as client:
         yield client
 
 
@@ -250,13 +276,18 @@ def create_test_user(db_session):
         admin=False
     ):
         from db.users import User
+        from argon2 import PasswordHasher
+        
+        ph = PasswordHasher()
+        password_hash = ph.hash("password123")  # Default password for test users
         
         user = User(
             email=email,
             first_name=first_name,
             last_name=last_name,
             api_key=api_key,
-            admin=admin
+            admin=admin,
+            password_hash=password_hash
         )
         db_session.add(user)
         db_session.commit()
@@ -287,6 +318,51 @@ def create_test_service_account(db_session):
         return account
     
     return _create_service_account
+
+
+@pytest.fixture
+def test_user(create_test_user):
+    """Create a regular test user."""
+    return {
+        "id": create_test_user().id,
+        "email": "test@example.com",
+        "first_name": "Test",
+        "last_name": "User",
+        "api_key": "test-api-key",
+        "admin": False
+    }
+
+
+@pytest.fixture
+def admin_user(create_test_user):
+    """Create an admin test user."""
+    admin = create_test_user(
+        email="admin@example.com",
+        first_name="Admin",
+        last_name="User",
+        api_key="admin-api-key",
+        admin=True
+    )
+    return {
+        "id": admin.id,
+        "email": admin.email,
+        "first_name": admin.first_name,
+        "last_name": admin.last_name,
+        "api_key": admin.api_key,
+        "admin": admin.admin
+    }
+
+
+@pytest.fixture
+def test_service_account(create_test_service_account):
+    """Create a test service account."""
+    account = create_test_service_account()
+    return {
+        "id": account.id,
+        "name": account.name,
+        "api_key": account.api_key,
+        "admin": account.admin
+    }
 
 
 @pytest.fixture

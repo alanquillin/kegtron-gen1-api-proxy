@@ -22,7 +22,7 @@ LOGGER = logging.getLogger(__name__)
 async def get_current_user(current_user: AuthUser = Depends(require_user), db: AsyncSession = Depends(get_async_db)):
     """Get current authenticated user"""
     if current_user.service_account:
-        return None
+        raise HTTPException(status_code=404, detail="User not found")
 
     user = await UsersDB.get(current_user.id, db)
     if not user:
@@ -92,10 +92,9 @@ async def update_user(
     LOGGER.debug("Updating user %s with data: %s", user_id, data)
 
     if data:
-        await UsersDB.update(db, user_id, **data)
+        await user.update(db, **data)
+        await db.refresh(user)
 
-    user = await UsersDB.get(user_id, db)
-    await db.refresh(user)
     return await UserService.transform_response(user, current_user)
 
 
@@ -110,7 +109,7 @@ async def delete_user(
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    await UsersDB.delete(db, user.id)
+    await user.delete(db)
     return
 
 
@@ -149,7 +148,7 @@ async def generate_user_api_key(
 
     # Generate new API key
     new_api_key = str(uuid.uuid4())
-    await UsersDB.update(db, user_id, api_key=new_api_key)
+    await user.update(db, api_key=new_api_key)
 
     return {"apiKey": new_api_key}
 
@@ -169,5 +168,5 @@ async def delete_user_api_key(
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    await UsersDB.update(db, user_id, api_key=None)
+    await user.update(db, api_key=None)
     return True

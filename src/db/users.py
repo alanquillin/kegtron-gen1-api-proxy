@@ -40,11 +40,11 @@ class User(Base, CRUDMixin, DictifiableMixin):
             return None
         return res[0]
 
-    async def update(self, pkey, db, password=None, **kwargs):  # pylint: disable=arguments-renamed
+    async def update(self, db, password=None, **kwargs):  # pylint: disable=arguments-renamed
         if password and not kwargs.get("password_hash"):
             ph = PasswordHasher()
             kwargs["password_hash"] = ph.hash(password)
-        return await super().update(db, pkey, **kwargs)
+        return await super().update(db, **kwargs)
 
     @classmethod
     async def create(cls, db, password=None, **kwargs):  # pylint: disable=arguments-renamed

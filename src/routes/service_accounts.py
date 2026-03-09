@@ -72,11 +72,11 @@ async def update_service_account(
     data = service_account_data.model_dump(exclude_unset=True)
 
     if data:
-        await ServiceAccountsDB.update(db, service_account_id, **data)
+        await service_account.update(db, **data)
 
     service_account = await ServiceAccountsDB.get(service_account_id,db)
     await db.refresh(service_account)
-    return await ServiceAccountService.transform_response(service_account, current_user)
+    return await ServiceAccountService.transform_response(service_account)
 
 
 @router.delete("/{service_account_id}", status_code=204)
@@ -90,7 +90,7 @@ async def delete_service_account(
     if not service_account:
         raise HTTPException(status_code=404, detail="Service account not found")
 
-    await ServiceAccountsDB.delete(db, service_account.id)
+    await service_account.delete(db)
     return True
 
 
@@ -108,7 +108,7 @@ async def generate_service_account_api_key(
 
     # Generate new API key
     new_api_key = str(uuid.uuid4())
-    await ServiceAccountsDB.update(db, service_account_id, api_key=new_api_key)
+    await service_account.update(db, api_key=new_api_key)
 
     return {"apiKey": new_api_key}
 
@@ -127,5 +127,5 @@ async def delete_service_account_api_key(
     if not current_user.admin:
         raise HTTPException(status_code=403, detail="Not authorized to delete API key for this service account")
 
-    await ServiceAccountsDB.update(db, service_account_id, api_key=None)
+    await service_account.update(db, api_key=None)
     return True

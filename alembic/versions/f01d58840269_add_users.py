@@ -37,7 +37,7 @@ def upgrade() -> None:
     op.create_table('service_accounts',
     sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
     sa.Column('name', sa.String(), nullable=False),
-    sa.Column('api_key', sa.String(), nullable=False),
+    sa.Column('api_key', sa.String(), nullable=True),
     sa.Column('admin', sa.Boolean(), default=False, nullable=False),
     sa.PrimaryKeyConstraint('id')
     )

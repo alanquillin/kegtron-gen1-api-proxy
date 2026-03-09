@@ -27,13 +27,16 @@ api = FastAPI(
 )
 
 # Session middleware - must be added before any dependencies use it
+# Disable secure cookies for test environment to allow HTTP
+_env = CONFIG.get("ENV")
+_https_only = False if _env == "test" else CONFIG.get("api.cookies.secure", True)
 api.add_middleware(
     SessionMiddleware,
     secret_key=_secret_key,
     session_cookie="session",
     max_age=None,  # Session expires when browser closes
     same_site=CONFIG.get("api.cookies.samesite", "lax"),
-    https_only=CONFIG.get("api.cookies.secure", True),
+    https_only=_https_only,
 )
 
 # CORS middleware
