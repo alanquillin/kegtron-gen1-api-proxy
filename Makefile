@@ -72,10 +72,7 @@ scan-dev:
 
 # Testing and Syntax targets
 
-test: test-ui test-api test-integration
-
-test-all:
-	$(PYTEST) test
+test: test-unit test-api test-integration
 
 test-unit:
 	$(PYTEST) test/unit

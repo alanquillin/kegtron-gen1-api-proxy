@@ -19,12 +19,12 @@ LOGGER = logging.getLogger(__name__)
 
 
 @router.get("/current", response_model=dict)
-async def get_current_user(current_user: AuthUser = Depends(require_user), db_session: AsyncSession = Depends(get_async_db)):
+async def get_current_user(current_user: AuthUser = Depends(require_user), db: AsyncSession = Depends(get_async_db)):
     """Get current authenticated user"""
     if current_user.service_account:
         return None
 
-    user = await UsersDB.get_by_pkey(db_session, current_user.id)
+    user = await UsersDB.get(current_user.id, db)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
@@ -32,9 +32,9 @@ async def get_current_user(current_user: AuthUser = Depends(require_user), db_se
 
 
 @router.get("", response_model=List[dict])
-async def list_users(current_user: AuthUser = Depends(require_admin), db_session: AsyncSession = Depends(get_async_db)):
+async def list_users(current_user: AuthUser = Depends(require_admin), db: AsyncSession = Depends(get_async_db)):
     """List all users (admin only)"""
-    users = await UsersDB.query(db_session)
+    users = await UsersDB.query(db)
     return [await UserService.transform_response(u, current_user) for u in users]
 
 
@@ -42,13 +42,13 @@ async def list_users(current_user: AuthUser = Depends(require_admin), db_session
 async def create_user(
     user_data: UserCreate,
     current_user: AuthUser = Depends(require_admin),
-    db_session: AsyncSession = Depends(get_async_db),
+    db: AsyncSession = Depends(get_async_db),
 ):
     """Create a new user (admin only)"""
     data = user_data.model_dump(exclude_unset=True)
     LOGGER.debug("Creating user with: %s", data)
 
-    user = await UsersDB.create(db_session, **data)
+    user = await UsersDB.create(db, **data)
     return await UserService.transform_response(user, current_user)
 
 
@@ -56,10 +56,10 @@ async def create_user(
 async def get_user(
     user_id: str,
     current_user: AuthUser = Depends(require_admin),
-    db_session: AsyncSession = Depends(get_async_db),
+    db: AsyncSession = Depends(get_async_db),
 ):
     """Get a specific user (admin only)"""
-    user = await UsersDB.get_by_pkey(db_session, user_id)
+    user = await UsersDB.get(user_id, db)
 
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
@@ -72,14 +72,14 @@ async def update_user(
     user_id: str,
     user_data: UserUpdate,
     current_user: AuthUser = Depends(require_user),
-    db_session: AsyncSession = Depends(get_async_db),
+    db: AsyncSession = Depends(get_async_db),
 ):
     """Update a user"""
     # Users can only update themselves unless they're admin
     if user_id != str(current_user.id) and not current_user.admin:
         raise HTTPException(status_code=403, detail="Not authorized to update this user")
 
-    user = await UsersDB.get_by_pkey(db_session, user_id)
+    user = await UsersDB.get(user_id, db)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
@@ -92,10 +92,10 @@ async def update_user(
     LOGGER.debug("Updating user %s with data: %s", user_id, data)
 
     if data:
-        await UsersDB.update(db_session, user_id, **data)
+        await UsersDB.update(db, user_id, **data)
 
-    user = await UsersDB.get_by_pkey(db_session, user_id)
-    await db_session.refresh(user)
+    user = await UsersDB.get(user_id, db)
+    await db.refresh(user)
     return await UserService.transform_response(user, current_user)
 
 
@@ -103,14 +103,14 @@ async def update_user(
 async def delete_user(
     user_id: str,
     current_user: AuthUser = Depends(require_admin),
-    db_session: AsyncSession = Depends(get_async_db),
+    db: AsyncSession = Depends(get_async_db),
 ):
     """Delete a user (admin only)"""
-    user = await UsersDB.get_by_pkey(db_session, user_id)
+    user = await UsersDB.get(user_id, db)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    await UsersDB.delete(db_session, user.id)
+    await UsersDB.delete(db, user.id)
     return
 
 
@@ -118,14 +118,14 @@ async def delete_user(
 async def get_user_api_key(
     user_id: str,
     current_user: AuthUser = Depends(require_user),
-    db_session: AsyncSession = Depends(get_async_db),
+    db: AsyncSession = Depends(get_async_db),
 ):
     """Get user's API key"""
     # Users can only get their own API key unless they're admin
     if user_id != str(current_user.id) and not current_user.admin:
         raise HTTPException(status_code=403, detail="Not authorized to view this API key")
 
-    user = await UsersDB.get_by_pkey(db_session, user_id)
+    user = await UsersDB.get(user_id, db)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
@@ -136,20 +136,20 @@ async def get_user_api_key(
 async def generate_user_api_key(
     user_id: str,
     current_user: AuthUser = Depends(require_user),
-    db_session: AsyncSession = Depends(get_async_db),
+    db: AsyncSession = Depends(get_async_db),
 ):
     """Generate a new API key for user"""
     # Users can only generate their own API key unless they're admin
     if user_id != str(current_user.id) and not current_user.admin:
         raise HTTPException(status_code=403, detail="Not authorized to generate API key for this user")
 
-    user = await UsersDB.get_by_pkey(db_session, user_id)
+    user = await UsersDB.get(user_id, db)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
     # Generate new API key
     new_api_key = str(uuid.uuid4())
-    await UsersDB.update(db_session, user_id, api_key=new_api_key)
+    await UsersDB.update(db, user_id, api_key=new_api_key)
 
     return {"apiKey": new_api_key}
 
@@ -158,16 +158,16 @@ async def generate_user_api_key(
 async def delete_user_api_key(
     user_id: str,
     current_user: AuthUser = Depends(require_user),
-    db_session: AsyncSession = Depends(get_async_db),
+    db: AsyncSession = Depends(get_async_db),
 ):
     """Delete user's API key"""
     # Users can only delete their own API key unless they're admin
     if user_id != str(current_user.id) and not current_user.admin:
         raise HTTPException(status_code=403, detail="Not authorized to delete API key for this user")
 
-    user = await UsersDB.get_by_pkey(db_session, user_id)
+    user = await UsersDB.get(user_id, db)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    await UsersDB.update(db_session, user_id, api_key=None)
+    await UsersDB.update(db, user_id, api_key=None)
     return True

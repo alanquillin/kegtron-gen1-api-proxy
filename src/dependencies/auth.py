@@ -71,7 +71,7 @@ class AuthUser:
 async def get_current_user_from_api_key(
     credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
     request: Request = None,
-    db_session: AsyncSession = Depends(get_async_db),
+    db: AsyncSession = Depends(get_async_db),
 ) -> Optional[AuthUser]:
     """
     Check for API key authentication via Bearer token or query parameter.
@@ -99,12 +99,12 @@ async def get_current_user_from_api_key(
                 pass
 
     if api_key:
-        user = await UsersDB.get_by_api_key(db_session, api_key)
+        user = await UsersDB.get_by_api_key(db, api_key)
         if user:
             LOGGER.debug("Authenticated user via API key: %s", user.email)
             return await AuthUser.from_user(user)
         else:
-            user = await ServiceAccountDB.get_by_api_key(db_session, api_key)
+            user = await ServiceAccountDB.get_by_api_key(db, api_key)
             if user:
                 LOGGER.debug("Authenticated service account via API key: %s", user.api_key)
                 return await AuthUser.from_service_account(user)
@@ -112,7 +112,7 @@ async def get_current_user_from_api_key(
     return None
 
 
-async def get_current_user_from_session(request: Request, db_session: AsyncSession = Depends(get_async_db)) -> Optional[AuthUser]:
+async def get_current_user_from_session(request: Request, db: AsyncSession = Depends(get_async_db)) -> Optional[AuthUser]:
     """
     Check for session-based authentication (cookie).
     Returns AuthUser if valid session found, None otherwise.
@@ -120,7 +120,7 @@ async def get_current_user_from_session(request: Request, db_session: AsyncSessi
     user_id = request.session.get("user_id")
 
     if user_id:
-        user = await UsersDB.get_by_pkey(db_session, user_id)
+        user = await UsersDB.get(user_id, db)
         if user:
             LOGGER.debug("Authenticated user via session: %s", user.email)
             return await AuthUser.from_user(user)

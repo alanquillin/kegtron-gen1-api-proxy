@@ -19,9 +19,9 @@ LOGGER = logging.getLogger(__name__)
 
 
 @router.get("", response_model=List[dict])
-async def list_service_accounts(current_user: AuthUser = Depends(require_admin), db_session: AsyncSession = Depends(get_async_db)):
+async def list_service_accounts(current_user: AuthUser = Depends(require_admin), db: AsyncSession = Depends(get_async_db)):
     """List all service accounts (admin only)"""
-    service_accounts = await ServiceAccountsDB.list(db_session)
+    service_accounts = await ServiceAccountsDB.list(db)
     return [await ServiceAccountService.transform_response(s) for s in service_accounts]
 
 
@@ -29,7 +29,7 @@ async def list_service_accounts(current_user: AuthUser = Depends(require_admin),
 async def create_service_account(
     service_account_data: ServiceAccountCreate,
     current_user: AuthUser = Depends(require_admin),
-    db_session: AsyncSession = Depends(get_async_db),
+    db: AsyncSession = Depends(get_async_db),
 ):
     """Create a new service account (admin only)"""
     data = service_account_data.model_dump(exclude_unset=True)
@@ -38,7 +38,7 @@ async def create_service_account(
     if "api_key" not in data:
         data["api_key"] = str(uuid.uuid4())
 
-    service_account = await ServiceAccountsDB.create(db_session, **data)
+    service_account = await ServiceAccountsDB.create(db, **data)
     return await ServiceAccountService.transform_response(service_account)
 
 
@@ -46,10 +46,10 @@ async def create_service_account(
 async def get_service_account(
     service_account_id: str,
     current_user: AuthUser = Depends(require_admin),
-    db_session: AsyncSession = Depends(get_async_db),
+    db: AsyncSession = Depends(get_async_db),
 ):
     """Get a specific service account (admin only)"""
-    service_account = await ServiceAccountsDB.get_by_pkey(db_session, service_account_id)
+    service_account = await ServiceAccountsDB.get(service_account_id,db)
 
     if not service_account:
         raise HTTPException(status_code=404, detail="Service account not found")
@@ -62,20 +62,20 @@ async def update_service_account(
     service_account_id: str,
     service_account_data: ServiceAccountUpdate,
     current_user: AuthUser = Depends(require_user),
-    db_session: AsyncSession = Depends(get_async_db),
+    db: AsyncSession = Depends(get_async_db),
 ):
     """Update a service account (admin only)"""
-    service_account = await ServiceAccountsDB.get_by_pkey(db_session, service_account_id)
+    service_account = await ServiceAccountsDB.get(service_account_id,db)
     if not service_account:
         raise HTTPException(status_code=404, detail="Service account not found")
 
     data = service_account_data.model_dump(exclude_unset=True)
 
     if data:
-        await ServiceAccountsDB.update(db_session, service_account_id, **data)
+        await ServiceAccountsDB.update(db, service_account_id, **data)
 
-    service_account = await ServiceAccountsDB.get_by_pkey(db_session, service_account_id)
-    await db_session.refresh(service_account)
+    service_account = await ServiceAccountsDB.get(service_account_id,db)
+    await db.refresh(service_account)
     return await ServiceAccountService.transform_response(service_account, current_user)
 
 
@@ -83,14 +83,14 @@ async def update_service_account(
 async def delete_service_account(
     service_account_id: str,
     current_user: AuthUser = Depends(require_admin),
-    db_session: AsyncSession = Depends(get_async_db),
+    db: AsyncSession = Depends(get_async_db),
 ):
     """Delete a service account (admin only)"""
-    service_account = await ServiceAccountsDB.get_by_pkey(db_session, service_account_id)
+    service_account = await ServiceAccountsDB.get(service_account_id,db)
     if not service_account:
         raise HTTPException(status_code=404, detail="Service account not found")
 
-    await ServiceAccountsDB.delete(db_session, service_account.id)
+    await ServiceAccountsDB.delete(db, service_account.id)
     return True
 
 
@@ -98,17 +98,17 @@ async def delete_service_account(
 async def generate_service_account_api_key(
     service_account_id: str,
     current_user: AuthUser = Depends(require_user),
-    db_session: AsyncSession = Depends(get_async_db),
+    db: AsyncSession = Depends(get_async_db),
 ):
     """Generate a new API key for service account"""
     # Users can only generate their own API key unless they're admin
-    service_account = await ServiceAccountsDB.get_by_pkey(db_session, service_account_id)
+    service_account = await ServiceAccountsDB.get(service_account_id,db)
     if not service_account:
         raise HTTPException(status_code=404, detail="Service account not found")
 
     # Generate new API key
     new_api_key = str(uuid.uuid4())
-    await ServiceAccountsDB.update(db_session, service_account_id, api_key=new_api_key)
+    await ServiceAccountsDB.update(db, service_account_id, api_key=new_api_key)
 
     return {"apiKey": new_api_key}
 
@@ -117,15 +117,15 @@ async def generate_service_account_api_key(
 async def delete_service_account_api_key(
     service_account_id: str,
     current_user: AuthUser = Depends(require_user),
-    db_session: AsyncSession = Depends(get_async_db),
+    db: AsyncSession = Depends(get_async_db),
 ):
     """Delete service account's API key (admin only)"""
-    service_account = await ServiceAccountsDB.get_by_pkey(db_session, service_account_id)
+    service_account = await ServiceAccountsDB.get(service_account_id,db)
     if not service_account:
         raise HTTPException(status_code=404, detail="Service account not found")
 
     if not current_user.admin:
         raise HTTPException(status_code=403, detail="Not authorized to delete API key for this service account")
 
-    await ServiceAccountsDB.update(db_session, service_account_id, api_key=None)
+    await ServiceAccountsDB.update(db, service_account_id, api_key=None)
     return True

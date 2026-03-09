@@ -11,7 +11,14 @@
 </head>
 <body>
     <div class="container">
-        <h1 class="text-center mb-4">Kegtron Gen1 - Device Dashboard</h1>
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1 class="text-center flex-grow-1">Kegtron Gen1 - Device Dashboard</h1>
+            <div class="auth-controls">
+                <span id="userInfo" style="margin-right: 15px; display: none;"></span>
+                <a href="/login.html" id="loginLink" class="btn btn-sm btn-outline-primary" style="display: none;">Login</a>
+                <a href="/logout" id="logoutLink" class="btn btn-sm btn-outline-secondary" style="display: none;">Logout</a>
+            </div>
+        </div>
         <div class="text-center mb-3">
             <div class="row justify-content-center align-items-center">
                 <div class="col-auto">
@@ -326,7 +333,40 @@
             }, 500);
         }
 
+        function checkAuthStatus() {
+            // Check if user is logged in
+            $.ajax({
+                url: '/api/v1/users/current',
+                method: 'GET',
+                success: function(data) {
+                    // User is logged in
+                    $('#userInfo').text(`Welcome, ${data.email || 'User'}`).show();
+                    $('#logoutLink').show();
+                    $('#loginLink').hide();
+                },
+                error: function() {
+                    // Not logged in or no session
+                    $('#userInfo').hide();
+                    $('#logoutLink').hide();
+                    $('#loginLink').show();
+                }
+            });
+        }
+
+        // Add API key to AJAX requests if stored in session
+        $.ajaxSetup({
+            beforeSend: function(xhr) {
+                const apiKey = sessionStorage.getItem('apiKey');
+                if (apiKey) {
+                    xhr.setRequestHeader('Authorization', `Bearer ${apiKey}`);
+                }
+            }
+        });
+
         $(document).ready(function() {
+            // Check authentication status
+            checkAuthStatus();
+            
             // Load devices initially
             loadDevices();
             
