@@ -143,18 +143,19 @@ class TestPublicEndpointsIntegration:
         error_data = response.json()
         assert "detail" in error_data
     
-    def test_api_versioning(self, api_client):
+    def test_api_versioning(self, api_client, test_user):
         """Test that API versioning is consistent."""
-        # v1 endpoints should work
+        # v1 public endpoints work without auth
         response = api_client.get("/api/v1/health")
         assert response.status_code == 200
-        
+
         response = api_client.get("/api/v1/ping")
         assert response.status_code == 200
-        
-        response = api_client.get("/api/v1/devices")
+
+        # v1 device endpoint requires auth
+        response = api_client.get("/api/v1/devices", params={"api_key": test_user["api_key"]})
         assert response.status_code == 200
-        
+
         # Non-versioned or wrong version should fail
         response = api_client.get("/api/v2/health")
         assert response.status_code == 404
@@ -192,38 +193,33 @@ class TestLoadAndStress:
         # Error rate should be very low
         assert len(errors) < request_count * 0.01  # Less than 1% error rate
     
-    def test_mixed_endpoint_load(self, api_client, create_test_device):
+    def test_mixed_endpoint_load(self, api_client, test_user, create_test_device):
         """Test API with mixed requests to different endpoints."""
         import random
-        
-        # Create some test data
+
         device = create_test_device()
-        
+        params = {"api_key": test_user["api_key"]}
+
         def random_request():
-            """Make a random request to various endpoints."""
             endpoints = [
                 ("GET", "/api/v1/health", None),
                 ("GET", "/api/v1/ping", None),
                 ("GET", "/api/v1/devices", None),
                 ("GET", f"/api/v1/devices/{device.id}", None),
             ]
-            
-            method, path, data = random.choice(endpoints)
-            
+            method, path, _ = random.choice(endpoints)
             try:
                 if method == "GET":
-                    response = api_client.get(path)
+                    response = api_client.get(path, params=params)
                     return response.status_code in [200, 201, 204]
                 return False
-            except:
+            except Exception:
                 return False
-        
-        # Make 100 random requests concurrently
+
         with concurrent.futures.ThreadPoolExecutor(max_workers=20) as executor:
             futures = [executor.submit(random_request) for _ in range(100)]
             results = [f.result() for f in futures]
-        
-        # At least 95% should succeed
+
         success_rate = sum(results) / len(results)
         assert success_rate > 0.95
 

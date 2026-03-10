@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from db import get_async_db
 from db.service_accounts import ServiceAccount as ServiceAccountsDB
-from dependencies.auth import AuthUser, require_admin, require_user
+from dependencies.auth import AuthUser, require_admin
 from lib import logging
 from schemas.service_accounts import ServiceAccountCreate, ServiceAccountUpdate
 from services.service_accounts import ServiceAccountService
@@ -122,9 +122,6 @@ async def delete_service_account_api_key(
     service_account = await ServiceAccountsDB.get(service_account_id, db)
     if not service_account:
         raise HTTPException(status_code=404, detail="Service account not found")
-
-    if not current_user.admin:
-        raise HTTPException(status_code=403, detail="Not authorized to delete API key for this service account")
 
     await service_account.update(db, api_key=None)
     return True

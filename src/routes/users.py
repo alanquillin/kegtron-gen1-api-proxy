@@ -93,18 +93,18 @@ async def update_user(
         from argon2 import PasswordHasher
         from argon2.exceptions import VerifyMismatchError
 
-        # If changing password, require current password verification (except for admins changing other users)
+        # Non-admin changing own password, or admin not in play: verify current password when one exists
         if user_id == str(current_user.id) or not current_user.admin:
-            if not data.get("current_password"):
-                raise HTTPException(status_code=400, detail="Current password required to change password")
-
-            # Verify current password
             if user.password_hash:
+                # User has an existing password: require and verify current_password
+                if not data.get("current_password"):
+                    raise HTTPException(status_code=400, detail="Current password required to change password")
                 ph = PasswordHasher()
                 try:
                     ph.verify(user.password_hash, data["current_password"])
                 except VerifyMismatchError:
                     raise HTTPException(status_code=401, detail="Current password is incorrect")  # pylint: disable=raise-missing-from
+            # else: no existing password — allow setting password without current_password (user already authenticated)
 
         # Hash the new password
         ph = PasswordHasher()

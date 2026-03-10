@@ -380,12 +380,6 @@ class TestMixedAuthentication:
         response = await client_no_auth.get(f"/api/v1/devices/{device.id}")
         assert response.status_code == 200
 
-        # Creating a device should also work without auth
-        new_device_data = sample_device_data.copy()
-        new_device_data["id"] = "new-device-123"
-        new_device_data["mac"] = "FF:EE:DD:CC:BB:AA"
-        response = await client_no_auth.post("/api/v1/devices", json=new_device_data)
-        assert response.status_code == 201
 
     @pytest.mark.asyncio
     async def test_session_auth_preferred_over_api_key(self, async_db_session, mock_config, sample_device_data):

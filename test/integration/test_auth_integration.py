@@ -80,7 +80,7 @@ class TestAuthenticationIntegration:
         assert response.status_code == 401
     
     def test_public_endpoints_no_auth_required(self, api_client, create_test_device):
-        """Test that public endpoints work without authentication."""
+        """Test that truly public endpoints work without authentication; device endpoints require auth."""
         # Create a device
         device = create_test_device(
             ports=[{
@@ -94,17 +94,17 @@ class TestAuthenticationIntegration:
             }]
         )
         
-        # Health check - should work
+        # Health check - should work without auth
         response = api_client.get("/api/v1/health")
         assert response.status_code == 200
         assert response.json()["status"] == "healthy"
         
-        # Ping - should work
+        # Ping - should work without auth
         response = api_client.get("/api/v1/ping")
         assert response.status_code == 200
         assert response.json() == "pong"
         
-        # GET devices - should work
+        # GET devices - should work without auth
         response = api_client.get("/api/v1/devices")
         assert response.status_code == 200
         devices = response.json()
@@ -116,7 +116,6 @@ class TestAuthenticationIntegration:
         assert response.status_code == 200
         assert response.json()["id"] == device.id
         
-        # POST new device - should work
         new_device_data = {
             "id": "new-device-123",
             "mac": "FF:EE:DD:CC:BB:AA",
@@ -136,8 +135,7 @@ class TestAuthenticationIntegration:
             }
         }
         response = api_client.post("/api/v1/devices", json=new_device_data)
-        assert response.status_code == 201
-        assert response.json() == {"created": True}
+        assert response.status_code == 401
 
 
 class TestUserAPIKeyAuthentication:
@@ -163,8 +161,8 @@ class TestUserAPIKeyAuthentication:
         assert response.status_code == 200
         assert response.json() == {"updated": True}
         
-        # Verify the update worked
-        response = api_client.get(f"/api/v1/devices/{device.id}")
+        # Verify the update worked (GET also requires auth)
+        response = api_client.get(f"/api/v1/devices/{device.id}", headers=headers)
         assert response.status_code == 200
         assert response.json()["name"] == "Updated via API Key"
     
@@ -194,8 +192,8 @@ class TestUserAPIKeyAuthentication:
         assert response.status_code == 200
         assert response.json() == {"updated": True}
         
-        # Verify the update worked
-        response = api_client.get(f"/api/v1/devices/{device.id}")
+        # Verify the update worked (GET also requires auth)
+        response = api_client.get(f"/api/v1/devices/{device.id}?api_key={user.api_key}")
         assert response.status_code == 200
         device_data = response.json()
         assert device_data["ports"]["0"]["portName"] == "Updated Port via Query Param"
@@ -243,9 +241,9 @@ class TestUserAPIKeyAuthentication:
             headers=headers
         )
         assert response.status_code == 200
-        
+
         # Verify update
-        response = api_client.get(f"/api/v1/devices/{device.id}")
+        response = api_client.get(f"/api/v1/devices/{device.id}", headers=headers)
         assert response.json()["name"] == "Updated with B64 Key"
 
 
@@ -269,11 +267,11 @@ class TestServiceAccountAPIKeyAuthentication:
         )
         assert response.status_code == 200
         assert response.json() == {"updated": True}
-        
+
         # Verify the update
-        response = api_client.get(f"/api/v1/devices/{device.id}")
+        response = api_client.get(f"/api/v1/devices/{device.id}", headers=headers)
         assert response.json()["name"] == "Updated via Service Account"
-    
+
     def test_service_account_api_key_query_param(self, api_client, create_test_service_account, create_test_device):
         """Test that a valid service account API key as query parameter allows access."""
         # Create a service account
@@ -299,9 +297,12 @@ class TestServiceAccountAPIKeyAuthentication:
             json={"port_name": "Updated via Service Account Query"}
         )
         assert response.status_code == 200
-        
+
         # Verify the update worked
-        response = api_client.get(f"/api/v1/devices/{device.id}")
+        response = api_client.get(
+            f"/api/v1/devices/{device.id}",
+            params={"api_key": service_account.api_key}
+        )
         device_data = response.json()
         assert device_data["ports"]["0"]["portName"] == "Updated via Service Account Query"
 
@@ -416,10 +417,11 @@ class TestConcurrentRequests:
             # All updates should succeed
             results = [f.result() for f in futures]
             assert all(results)
-        
+
         # Verify all updates were applied
         for i, device in enumerate(devices):
-            response = api_client.get(f"/api/v1/devices/{device.id}")
+            headers = {"Authorization": f"Bearer {users[i].api_key}"}
+            response = api_client.get(f"/api/v1/devices/{device.id}", headers=headers)
             assert response.status_code == 200
             assert response.json()["name"] == f"Updated by User {i}"
 
@@ -427,10 +429,11 @@ class TestConcurrentRequests:
 class TestRateLimiting:
     """Test API behavior under load and with invalid auth attempts."""
     
-    def test_multiple_invalid_auth_attempts(self, api_client, create_test_device):
+    def test_multiple_invalid_auth_attempts(self, api_client, create_test_user, create_test_device):
         """Test that multiple invalid auth attempts are handled properly."""
         device = create_test_device()
-        
+        valid_user = create_test_user(api_key="valid-key-after-invalid")
+
         # Make multiple requests with invalid API keys
         for i in range(10):
             headers = {"Authorization": f"Bearer invalid-key-{i}"}
@@ -440,8 +443,8 @@ class TestRateLimiting:
                 headers=headers
             )
             assert response.status_code == 401
-        
+
         # Valid request should still work
-        # (In production, you might implement rate limiting for failed auth)
-        response = api_client.get(f"/api/v1/devices/{device.id}")
+        headers = {"Authorization": f"Bearer {valid_user.api_key}"}
+        response = api_client.get(f"/api/v1/devices/{device.id}", headers=headers)
         assert response.status_code == 200

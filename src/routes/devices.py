@@ -51,7 +51,11 @@ async def get_devices_int(db: AsyncSession = Depends(get_async_db)) -> List[dict
 
 
 @router.post("", status_code=201)
-async def save_device(device_data: DeviceCreate, db: AsyncSession = Depends(get_async_db)):
+async def save_device(
+    device_data: DeviceCreate,
+    db: AsyncSession = Depends(get_async_db),
+    current_user: AuthUser = Depends(require_user),
+):
     if not device_data.id:
         raise HTTPException(status_code=400, detail="The `id` field is required.")
 
@@ -68,7 +72,10 @@ async def save_device(device_data: DeviceCreate, db: AsyncSession = Depends(get_
 
 
 @router.get("/{device_id}")
-async def get_device(device_id: str, db: AsyncSession = Depends(get_async_db)) -> dict:
+async def get_device(
+    device_id: str,
+    db: AsyncSession = Depends(get_async_db)
+) -> dict:
     device = await deviceDB.get(device_id, db, options=[selectinload(deviceDB.ports)])
     if not device:
         raise HTTPException(status_code=404, detail=f"Device with id {device_id} not found")

@@ -106,14 +106,22 @@ async def get_current_user_from_session(request: Request, db: AsyncSession = Dep
     """
     Check for session-based authentication (cookie).
     Returns AuthUser if valid session found, None otherwise.
+    Session stores user_id as str; coerce to int for Integer primary key lookup.
     """
-    user_id = request.session.get("user_id")
+    raw_user_id = request.session.get("user_id")
+    if not raw_user_id:
+        return None
 
-    if user_id:
-        user = await UsersDB.get(user_id, db)
-        if user:
-            LOGGER.debug("Authenticated user via session: %s", user.email)
-            return await AuthUser.from_user(user)
+    try:
+        user_id = int(raw_user_id)
+    except (TypeError, ValueError):
+        LOGGER.warning("Invalid session user_id type: %r", type(raw_user_id).__name__)
+        return None
+
+    user = await UsersDB.get(user_id, db)
+    if user:
+        LOGGER.debug("Authenticated user via session: %s", user.email)
+        return await AuthUser.from_user(user)
 
     return None
 

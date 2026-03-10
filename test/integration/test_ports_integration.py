@@ -41,9 +41,9 @@ class TestPortEndpointsIntegration:
         )
         assert response.status_code == 200
         assert response.json() == {"updated": True}
-        
+
         # Verify update
-        response = api_client.get(f"/api/v1/devices/{device.id}")
+        response = api_client.get(f"/api/v1/devices/{device.id}", headers=headers)
         assert response.status_code == 200
         device_data = response.json()
         port_data = device_data["ports"]["0"]
@@ -77,12 +77,12 @@ class TestPortEndpointsIntegration:
             headers=headers
         )
         assert response.status_code == 200
-        
+
         # Verify normalization
-        response = api_client.get(f"/api/v1/devices/{device.id}")
+        response = api_client.get(f"/api/v1/devices/{device.id}", headers=headers)
         device_data = response.json()
         assert device_data["ports"]["0"]["displayUnit"] == "mL"
-        
+
         # Test l -> L normalization
         response = api_client.patch(
             f"/api/v1/devices/{device.id}/ports/0",
@@ -90,12 +90,12 @@ class TestPortEndpointsIntegration:
             headers=headers
         )
         assert response.status_code == 200
-        
+
         # Verify normalization
-        response = api_client.get(f"/api/v1/devices/{device.id}")
+        response = api_client.get(f"/api/v1/devices/{device.id}", headers=headers)
         device_data = response.json()
         assert device_data["ports"]["0"]["displayUnit"] == "L"
-    
+
     def test_update_port_invalid_unit(self, api_client, create_test_user, create_test_device):
         """Test updating a port with invalid display unit."""
         # Create user
@@ -215,12 +215,12 @@ class TestPortEndpointsIntegration:
             headers=headers
         )
         assert response.status_code == 200
-        
+
         # Verify both updates
-        response = api_client.get(f"/api/v1/devices/{device.id}")
+        response = api_client.get(f"/api/v1/devices/{device.id}", headers=headers)
         assert response.status_code == 200
         device_data = response.json()
-        
+
         assert device_data["ports"]["0"]["portName"] == "Beer Keg"
         assert device_data["ports"]["0"]["displayUnit"] == "oz"
         assert device_data["ports"]["1"]["portName"] == "Cider Keg"
@@ -257,9 +257,9 @@ class TestPortEndpointsIntegration:
             headers=headers
         )
         assert response.status_code == 200
-        
+
         # Verify update
-        response = api_client.get(f"/api/v1/devices/{device.id}")
+        response = api_client.get(f"/api/v1/devices/{device.id}", headers=headers)
         assert response.status_code == 200
         device_data = response.json()
         port_data = device_data["ports"]["0"]
@@ -293,9 +293,9 @@ class TestPortEndpointsIntegration:
             headers=headers
         )
         assert response.status_code == 200
-        
+
         # Verify only specified field was updated
-        response = api_client.get(f"/api/v1/devices/{device.id}")
+        response = api_client.get(f"/api/v1/devices/{device.id}", headers=headers)
         assert response.status_code == 200
         device_data = response.json()
         port_data = device_data["ports"]["0"]
@@ -356,9 +356,10 @@ class TestPortConcurrency:
         
         # All updates should succeed
         assert all(results)
-        
+
         # Verify all updates were applied
-        response = api_client.get(f"/api/v1/devices/{device.id}")
+        headers = {"Authorization": f"Bearer {users[0].api_key}"}
+        response = api_client.get(f"/api/v1/devices/{device.id}", headers=headers)
         assert response.status_code == 200
         device_data = response.json()
         for i in range(3):
