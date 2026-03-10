@@ -35,6 +35,7 @@ from httpx import AsyncClient
 from kegtron.parser import parse
 from lib.time import utcnow_aware
 
+service_account_api_key = None
 proxy_url_prefix = None
 
 kegtron_devices = {}
@@ -98,7 +99,7 @@ async def _save_device_api(data: dict) -> bool:
     LOGGER.info(f'Saving device to proxy: "{data.get("name")}"')
     LOGGER.debug(f"Device data: {transformed_data}")
     async with AsyncClient() as client:
-        r = await client.post(f"{proxy_url_prefix}/devices", json=to_json(transformed_data))
+        r = await client.post(f"{proxy_url_prefix}/devices", json=to_json(transformed_data), headers={"Authorization": f"Bearer {service_account_api_key}"})
         if r.status_code != 201:
             if r.status_code == 400 and "The device already exists" in r.text:
                 LOGGER.debug("Device already exists, so we are good!")
@@ -162,7 +163,7 @@ async def _update_device_api(data: dict) -> bool:
     transformed_data = dict_to_camel_case(data)
     LOGGER.debug(f'Updating device "{data.get("name")}" on proxy.  Device data: {transformed_data}')
     async with AsyncClient() as client:
-        r = await client.put(f'{proxy_url_prefix}/devices/{data.get("id")}', json=to_json(transformed_data))
+        r = await client.put(f'{proxy_url_prefix}/devices/{data.get("id")}', json=to_json(transformed_data), headers={"Authorization": f"Bearer {service_account_api_key}"})
         if r.status_code != 200:
             LOGGER.error(f"Failed to update device data. Status Code: {r.status_code}, Message: {r.text}")
             return False
@@ -279,7 +280,14 @@ if __name__ == "__main__":
     CONFIG.set("proxy.enabled", not args.no_proxy)
     app_config = CONFIG
 
-    proxy_url_prefix = f'{CONFIG.get("proxy.scheme")}://{CONFIG.get("proxy.host")}:{CONFIG.get("proxy.port")}/api/v1'
+    if CONFIG.get("scanner.backend") == "api" and CONFIG.get("proxy.enabled"):
+        service_account_api_key = CONFIG.get("proxy.auth.initial_user.api_key")
+        if not service_account_api_key:
+            msg = "Scanner is enabled and configured to use the API backend, but the service account API key is not set"
+            LOGGER.error(msg)
+            raise ValueError(msg)
+
+        proxy_url_prefix = f'{CONFIG.get("proxy.scheme")}://{CONFIG.get("proxy.host")}:{CONFIG.get("proxy.port")}/api/v1'
 
     ignore_logging_modules = ["bleson"]
     for i in ignore_logging_modules:
