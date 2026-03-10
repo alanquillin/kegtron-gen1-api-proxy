@@ -1,7 +1,6 @@
 # pylint: disable=wrong-import-position
 from sqlalchemy import Column, Integer, String
 from sqlalchemy.schema import Index
-from sqlalchemy.sql import func
 
 from db import Base, CRUDMixin, DictifiableMixin
 
