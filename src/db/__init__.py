@@ -10,13 +10,7 @@ from sqlalchemy.orm import ColumnProperty, sessionmaker
 from lib import logging
 from lib.config import Config
 
-__all__ = [
-    "Base",
-    "devices",
-    "ports",
-    "users",
-    "service_accounts"
-]
+__all__ = ["Base", "devices", "ports", "users", "service_accounts"]
 
 CONFIG = Config()
 LOGGER = logging.getLogger(__name__)
@@ -29,7 +23,7 @@ def get_db_file_path() -> str:
     if test_db_path:
         LOGGER.debug("Using test DB file path: %s", test_db_path)
         return test_db_path
-    
+
     path = CONFIG.get("db.path")
     base_dir = CONFIG.get("db.base_dir")
     if base_dir:

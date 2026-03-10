@@ -175,7 +175,9 @@ async def _update_device_api(data: dict) -> bool:
     transformed_data = dict_to_camel_case(data)
     LOGGER.debug(f'Updating device "{data.get("name")}" on proxy.  Device data: {transformed_data}')
     async with AsyncClient() as client:
-        r = await client.put(f'{proxy_url_prefix}/devices/{data.get("id")}', json=to_json(transformed_data), headers={"Authorization": f"Bearer {service_account_api_key}"})
+        r = await client.put(
+            f'{proxy_url_prefix}/devices/{data.get("id")}', json=to_json(transformed_data), headers={"Authorization": f"Bearer {service_account_api_key}"}
+        )
         if r.status_code != 200:
             LOGGER.error(f"Failed to update device data. Status Code: {r.status_code}, Message: {r.text}")
             return False

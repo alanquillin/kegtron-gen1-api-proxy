@@ -6,9 +6,8 @@ from typing import List
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
-
-from db.service_accounts import ServiceAccount as ServiceAccountsDB
 from db import get_async_db
+from db.service_accounts import ServiceAccount as ServiceAccountsDB
 from dependencies.auth import AuthUser, require_admin, require_user
 from lib import logging
 from schemas.service_accounts import ServiceAccountCreate, ServiceAccountUpdate
@@ -49,7 +48,7 @@ async def get_service_account(
     db: AsyncSession = Depends(get_async_db),
 ):
     """Get a specific service account (admin only)"""
-    service_account = await ServiceAccountsDB.get(service_account_id,db)
+    service_account = await ServiceAccountsDB.get(service_account_id, db)
 
     if not service_account:
         raise HTTPException(status_code=404, detail="Service account not found")
@@ -65,7 +64,7 @@ async def update_service_account(
     db: AsyncSession = Depends(get_async_db),
 ):
     """Update a service account (admin only)"""
-    service_account = await ServiceAccountsDB.get(service_account_id,db)
+    service_account = await ServiceAccountsDB.get(service_account_id, db)
     if not service_account:
         raise HTTPException(status_code=404, detail="Service account not found")
 
@@ -74,7 +73,7 @@ async def update_service_account(
     if data:
         await service_account.update(db, **data)
 
-    service_account = await ServiceAccountsDB.get(service_account_id,db)
+    service_account = await ServiceAccountsDB.get(service_account_id, db)
     await db.refresh(service_account)
     return await ServiceAccountService.transform_response(service_account)
 
@@ -86,7 +85,7 @@ async def delete_service_account(
     db: AsyncSession = Depends(get_async_db),
 ):
     """Delete a service account (admin only)"""
-    service_account = await ServiceAccountsDB.get(service_account_id,db)
+    service_account = await ServiceAccountsDB.get(service_account_id, db)
     if not service_account:
         raise HTTPException(status_code=404, detail="Service account not found")
 
@@ -102,7 +101,7 @@ async def generate_service_account_api_key(
 ):
     """Generate a new API key for service account"""
     # Users can only generate their own API key unless they're admin
-    service_account = await ServiceAccountsDB.get(service_account_id,db)
+    service_account = await ServiceAccountsDB.get(service_account_id, db)
     if not service_account:
         raise HTTPException(status_code=404, detail="Service account not found")
 
@@ -120,7 +119,7 @@ async def delete_service_account_api_key(
     db: AsyncSession = Depends(get_async_db),
 ):
     """Delete service account's API key (admin only)"""
-    service_account = await ServiceAccountsDB.get(service_account_id,db)
+    service_account = await ServiceAccountsDB.get(service_account_id, db)
     if not service_account:
         raise HTTPException(status_code=404, detail="Service account not found")
 

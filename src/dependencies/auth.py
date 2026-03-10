@@ -11,8 +11,8 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from db import get_async_db
-from db.users import User as UsersDB
 from db.service_accounts import ServiceAccount as ServiceAccountDB
+from db.users import User as UsersDB
 from lib import logging
 from lib.config import Config
 
@@ -22,24 +22,14 @@ LOGGER = logging.getLogger(__name__)
 # Create security scheme for optional Bearer token
 security = HTTPBearer(auto_error=False)
 
+
 class AuthUser:
     """
     FastAPI version of AuthUser (replaces Flask-Login's UserMixin).
     Represents an authenticated user with their permissions.
     """
 
-    def __init__(
-        self,
-        id_,
-        first_name,
-        last_name,
-        email,
-        profile_pic,
-        api_key,
-        admin,
-        service_account,
-        service_name
-    ):
+    def __init__(self, id_, first_name, last_name, email, profile_pic, api_key, admin, service_account, service_name):
         self.id = id_
         self.first_name = first_name
         self.last_name = last_name
@@ -174,4 +164,3 @@ async def require_admin(user: AuthUser = Depends(require_user)) -> AuthUser:
             detail="You are not authorized to access this resource.",
         )
     return user
-

@@ -10,12 +10,12 @@ import kegtron
 from db import get_async_db
 from db.devices import Device as deviceDB
 from db.ports import Port as portDB
+from dependencies.auth import AuthUser, require_user
 from kegtron import gatt
 from lib import logging
 from lib.config import Config
 from lib.units import to_ml
 from schemas.rpc import ResetVolumeRequest
-from dependencies.auth import AuthUser, require_user
 
 LOGGER = logging.getLogger(__name__)
 CONFIG = Config()
@@ -54,7 +54,9 @@ async def unlock_write_rpc(device_id: str, port_index: int, db: AsyncSession = D
 
 
 @router_ports.post("/Kegtron.ResetVolume")
-async def reset_volume_rpc(device_id: str, port_index: int, request: ResetVolumeRequest, db: AsyncSession = Depends(get_async_db), current_user: AuthUser = Depends(require_user)):
+async def reset_volume_rpc(
+    device_id: str, port_index: int, request: ResetVolumeRequest, db: AsyncSession = Depends(get_async_db), current_user: AuthUser = Depends(require_user)
+):
     # raise HTTPException(status_code=405, detail="Method not yet implemented")
     device = await deviceDB.get(device_id, db)
     if not device:

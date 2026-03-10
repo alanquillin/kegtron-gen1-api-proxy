@@ -1,13 +1,6 @@
 """FastAPI dependencies"""
 
-from dependencies.auth import (
-    AuthUser,
-    get_current_user_from_api_key,
-    get_current_user_from_session,
-    get_optional_user,
-    require_admin,
-    require_user,
-)
+from dependencies.auth import AuthUser, get_current_user_from_api_key, get_current_user_from_session, get_optional_user, require_admin, require_user
 
 __all__ = [
     "AuthUser",

@@ -1,12 +1,13 @@
 # pylint: disable=wrong-import-position
 from argon2 import PasswordHasher
 from sqlalchemy import Boolean, Column, Integer, String
-from sqlalchemy.sql import func
 from sqlalchemy.schema import Index
+from sqlalchemy.sql import func
 
 from db import Base, CRUDMixin, DictifiableMixin
 
 TABLE_NAME = "users"
+
 
 class User(Base, CRUDMixin, DictifiableMixin):
 

@@ -4,8 +4,8 @@ from dateutil.parser import parse as parse_datetime
 from sqlalchemy import JSON, Boolean, Column, DateTime, Float, ForeignKey, Integer, String
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import relationship
-from sqlalchemy.sql import func
 from sqlalchemy.schema import Index
+from sqlalchemy.sql import func
 
 from db import Base, CRUDMixin, DictifiableMixin
 from lib import logging

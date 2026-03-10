@@ -22,8 +22,9 @@ import uvicorn
 import scan as kegtron_ble_scanner
 from api import api
 from db import AsyncSessionLocal
-from db.users import User as UsersDB
 from db.service_accounts import ServiceAccount as ServiceAccountDB
+from db.users import User as UsersDB
+
 # Global application instance for access from other modules
 app_instance = None
 
@@ -59,7 +60,7 @@ class Application:
                     data["last_name"] = init_user_lname
                 if api_key:
                     data["api_key"] = api_key
-                
+
                 LOGGER.info("No users exist, creating initial user: %s", data)
                 if set_init_user_pass:
                     data["password"] = CONFIG.get("auth.initial_user.password")
@@ -72,23 +73,23 @@ class Application:
         """Get the current scanner status for health checks"""
         if not CONFIG.get("scanner.enabled"):
             return {"status": "disabled", "message": "Scanner is disabled in configuration"}
-        
+
         if not self.scanner_task:
             return {"status": "not_started", "message": "Scanner task not initialized"}
-        
+
         if self.scanner_task.done():
             if self.scanner_task.cancelled():
                 return {"status": "cancelled", "message": "Scanner task was cancelled"}
-            
+
             try:
                 # Check if task completed with an exception
                 self.scanner_task.result()
                 return {"status": "stopped", "message": "Scanner task completed normally"}
             except Exception as e:
                 return {"status": "failed", "message": f"Scanner task failed: {str(e)}"}
-        
+
         return {"status": "running", "message": "Scanner is running normally"}
-    
+
     async def check_scanner_service_account(self):
         if CONFIG.get("scanner.backend") != "api" or not CONFIG.get("scanner.enabled"):
             LOGGER.info("Scanner backend is not API, skipping service account check")
@@ -109,6 +110,7 @@ class Application:
 
     async def start_scanner(self):
         """Start the BLE scanner with automatic restart on failure"""
+
         async def scanner_with_restart():
             """Inner function to handle scanner restarts"""
             consecutive_failures = 0
@@ -126,36 +128,24 @@ class Application:
                     break
                 except Exception as e:
                     consecutive_failures += 1
-                    LOGGER.error(
-                        "Scanner crashed (failure %d/%d): %s", 
-                        consecutive_failures, 
-                        max_consecutive_failures,
-                        e,
-                        exc_info=True
-                    )
-                    
+                    LOGGER.error("Scanner crashed (failure %d/%d): %s", consecutive_failures, max_consecutive_failures, e, exc_info=True)
+
                     if consecutive_failures >= max_consecutive_failures:
-                        LOGGER.critical(
-                            "Scanner failed %d times consecutively. Stopping restart attempts.",
-                            max_consecutive_failures
-                        )
+                        LOGGER.critical("Scanner failed %d times consecutively. Stopping restart attempts.", max_consecutive_failures)
                         break
-                    
+
                     # Wait before restarting, with exponential backoff
                     wait_time = min(self.scanner_restart_delay * (2 ** (consecutive_failures - 1)), 60)
                     LOGGER.info("Restarting scanner in %d seconds...", wait_time)
-                    
+
                     try:
-                        await asyncio.wait_for(
-                            self.shutdown_event.wait(),
-                            timeout=wait_time
-                        )
+                        await asyncio.wait_for(self.shutdown_event.wait(), timeout=wait_time)
                         # If we get here, shutdown was requested
                         break
                     except asyncio.TimeoutError:
                         # Normal case - continue to restart
                         pass
-        
+
         self.scanner_task = asyncio.create_task(scanner_with_restart())
 
     async def start_http_server(self):
@@ -179,12 +169,12 @@ class Application:
 
     async def run(self):
         """Main application entry point.
-        
+
         Initializes and starts all application components:
         - Starts the BLE scanner if enabled
         - Starts the HTTP/WebSocket server
         - Handles graceful shutdown on cancellation
-        
+
         The method runs until interrupted (Ctrl+C) or cancelled.
         """
 
@@ -206,17 +196,17 @@ class Application:
 
     async def shutdown(self):
         """Gracefully shutdown all application components.
-        
+
         This method:
         - Sets the shutdown event to signal all tasks to stop
         - Cancels the scanner task and waits for it to complete
         - Logs the shutdown process for debugging
-        
+
         Should be called when the application is terminating to ensure
         proper cleanup of resources.
         """
         LOGGER.info("Shutting down application...")
-        
+
         # Signal shutdown to all tasks
         self.shutdown_event.set()
 

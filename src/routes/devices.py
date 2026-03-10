@@ -8,11 +8,11 @@ from sqlalchemy.orm import selectinload
 from db import get_async_db
 from db.devices import Device as deviceDB
 from db.ports import Port as portsDB
+from dependencies.auth import AuthUser, require_user
 from lib import logging
 from lib.config import Config
 from schemas.devices import DeviceCreate, DeviceUpdate
 from services.devices import transform_device
-from dependencies.auth import AuthUser, require_user
 
 LOGGER = logging.getLogger(__name__)
 CONFIG = Config()
@@ -76,7 +76,14 @@ async def get_device(device_id: str, db: AsyncSession = Depends(get_async_db)) -
     return transform_device(device)
 
 
-async def update_device_ports(device_id: str, ports_dict: dict, ports: list[portsDB], db: AsyncSession = Depends(get_async_db), create_on_not_found: bool =False, current_user: AuthUser = Depends(require_user)):
+async def update_device_ports(
+    device_id: str,
+    ports_dict: dict,
+    ports: list[portsDB],
+    db: AsyncSession = Depends(get_async_db),
+    create_on_not_found: bool = False,
+    current_user: AuthUser = Depends(require_user),
+):
     for idx, port_dict in ports_dict.items():
         idx = int(idx)
         LOGGER.debug("Upserting port with data: %s", port_dict)
