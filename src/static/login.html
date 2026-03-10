@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kegtron Gen1 API Proxy - Login</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .login-container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+            max-width: 400px;
+            width: 100%;
+            margin: 20px;
+        }
+
+        .login-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 30px;
+            text-align: center;
+            color: white;
+        }
+
+        .login-header h1 {
+            margin: 0;
+            font-size: 28px;
+            font-weight: bold;
+        }
+
+        .login-header p {
+            margin: 10px 0 0;
+            opacity: 0.9;
+            font-size: 14px;
+        }
+
+        .login-body {
+            padding: 40px 30px;
+        }
+
+        .form-floating {
+            margin-bottom: 20px;
+        }
+
+        .form-floating input {
+            border-radius: 10px;
+            border: 1px solid #dee2e6;
+            height: 55px;
+            padding-top: 25px;
+        }
+
+        .form-floating label {
+            padding-left: 15px;
+            color: #6c757d;
+        }
+
+        .form-floating input:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+        }
+
+        .btn-login {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 10px;
+            color: white;
+            font-weight: 600;
+            padding: 12px;
+            width: 100%;
+            margin-top: 10px;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .btn-login:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 7px 14px rgba(50,50,93,.1), 0 3px 6px rgba(0,0,0,.08);
+            background: linear-gradient(135deg, #5a6fd6 0%, #6a428e 100%);
+        }
+
+        .btn-login:active {
+            transform: translateY(0);
+        }
+
+        .divider {
+            text-align: center;
+            margin: 30px 0 20px;
+            position: relative;
+        }
+
+        .divider::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: #dee2e6;
+        }
+
+        .divider span {
+            background: white;
+            padding: 0 15px;
+            position: relative;
+            color: #6c757d;
+            font-size: 14px;
+        }
+
+        .api-key-section {
+            margin-top: 20px;
+        }
+
+        .api-key-toggle {
+            cursor: pointer;
+            color: #667eea;
+            text-align: center;
+            font-size: 14px;
+            margin-bottom: 15px;
+        }
+
+        .api-key-toggle:hover {
+            text-decoration: underline;
+        }
+
+        .api-key-form {
+            display: none;
+        }
+
+        .api-key-form.show {
+            display: block;
+        }
+
+        .alert {
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .alert.show {
+            display: block;
+        }
+
+        .spinner-border {
+            width: 1.5rem;
+            height: 1.5rem;
+            margin-right: 8px;
+        }
+
+        .form-check {
+            margin-top: 15px;
+            margin-bottom: 20px;
+        }
+
+        .form-check-input:checked {
+            background-color: #667eea;
+            border-color: #667eea;
+        }
+
+        .back-to-dashboard {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .back-to-dashboard a {
+            color: #667eea;
+            text-decoration: none;
+            font-size: 14px;
+        }
+
+        .back-to-dashboard a:hover {
+            text-decoration: underline;
+        }
+
+        .password-toggle {
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            cursor: pointer;
+            z-index: 10;
+            color: #6c757d;
+        }
+
+        .password-field-wrapper {
+            position: relative;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-header">
+            <h1>Kegtron Gen1 API Proxy</h1>
+            <p>Login to access your dashboard</p>
+        </div>
+        <div class="login-body">
+            <!-- Alert Messages -->
+            <div id="errorAlert" class="alert alert-danger" role="alert">
+                <span id="errorMessage"></span>
+            </div>
+            <div id="successAlert" class="alert alert-success" role="alert">
+                <span id="successMessage"></span>
+            </div>
+
+            <!-- Email/Password Login Form -->
+            <form id="loginForm">
+                <div class="form-floating">
+                    <input type="email" class="form-control" id="email" placeholder="name@example.com" required>
+                    <label for="email">Email address</label>
+                </div>
+                <div class="form-floating password-field-wrapper">
+                    <input type="password" class="form-control" id="password" placeholder="Password" required>
+                    <label for="password">Password</label>
+                    <span class="material-icons password-toggle" onclick="togglePassword('password')">visibility_off</span>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="rememberMe">
+                    <label class="form-check-label" for="rememberMe">
+                        Remember me
+                    </label>
+                </div>
+                <button type="submit" class="btn btn-primary btn-login" id="loginButton">
+                    <span id="loginButtonText">Sign In</span>
+                </button>
+            </form>
+
+            <!-- Divider -->
+            <div class="divider">
+                <span>OR</span>
+            </div>
+
+            <!-- API Key Login -->
+            <div class="api-key-section">
+                <div class="api-key-toggle" onclick="toggleApiKeyForm()">
+                    Use API Key instead
+                </div>
+                <form id="apiKeyForm" class="api-key-form">
+                    <div class="form-floating">
+                        <input type="text" class="form-control" id="apiKey" placeholder="Enter your API key">
+                        <label for="apiKey">API Key</label>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-login" id="apiKeyButton">
+                        <span id="apiKeyButtonText">Login with API Key</span>
+                    </button>
+                </form>
+            </div>
+
+            <!-- Back to Dashboard -->
+            <div class="back-to-dashboard">
+                <a href="/">← Back to Dashboard</a>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script>
+        // Check if already logged in
+        $(document).ready(function() {
+            checkAuthStatus();
+        });
+
+        function checkAuthStatus() {
+            // Try to access a protected endpoint to check if we have a valid session
+            $.ajax({
+                url: '/api/v1/users/current',
+                method: 'GET',
+                success: function(data) {
+                    // User is already logged in, redirect to dashboard
+                    showSuccess('Already logged in! Redirecting...');
+                    setTimeout(() => {
+                        window.location.href = '/';
+                    }, 1500);
+                },
+                error: function() {
+                    // Not logged in, continue with login page
+                }
+            });
+        }
+
+        function togglePassword(fieldId) {
+            const field = document.getElementById(fieldId);
+            const icon = event.target;
+            
+            if (field.type === 'password') {
+                field.type = 'text';
+                icon.textContent = 'visibility';
+            } else {
+                field.type = 'password';
+                icon.textContent = 'visibility_off';
+            }
+        }
+
+        function toggleApiKeyForm() {
+            const apiKeyForm = document.getElementById('apiKeyForm');
+            const toggle = document.querySelector('.api-key-toggle');
+            
+            if (apiKeyForm.classList.contains('show')) {
+                apiKeyForm.classList.remove('show');
+                toggle.textContent = 'Use API Key instead';
+            } else {
+                apiKeyForm.classList.add('show');
+                toggle.textContent = 'Use Email/Password instead';
+            }
+        }
+
+        function showError(message) {
+            $('#errorMessage').text(message);
+            $('#errorAlert').addClass('show');
+            $('#successAlert').removeClass('show');
+            setTimeout(() => {
+                $('#errorAlert').removeClass('show');
+            }, 5000);
+        }
+
+        function showSuccess(message) {
+            $('#successMessage').text(message);
+            $('#successAlert').addClass('show');
+            $('#errorAlert').removeClass('show');
+        }
+
+        function setLoadingState(buttonId, isLoading) {
+            const button = $(`#${buttonId}`);
+            const textSpan = $(`#${buttonId}Text`);
+            
+            if (isLoading) {
+                button.prop('disabled', true);
+                textSpan.html('<span class="spinner-border spinner-border-sm" role="status"></span>Signing in...');
+            } else {
+                button.prop('disabled', false);
+                if (buttonId === 'loginButton') {
+                    textSpan.text('Sign In');
+                } else {
+                    textSpan.text('Login with API Key');
+                }
+            }
+        }
+
+        // Handle email/password login
+        $('#loginForm').on('submit', function(e) {
+            e.preventDefault();
+            
+            const email = $('#email').val();
+            const password = $('#password').val();
+            
+            setLoadingState('loginButton', true);
+            
+            $.ajax({
+                url: '/login',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    email: email,
+                    password: password
+                }),
+                success: function(response) {
+                    showSuccess('Login successful! Redirecting...');
+                    
+                    // If remember me is checked, store email
+                    if ($('#rememberMe').is(':checked')) {
+                        localStorage.setItem('rememberedEmail', email);
+                    } else {
+                        localStorage.removeItem('rememberedEmail');
+                    }
+                    
+                    // Redirect to dashboard or intended page
+                    setTimeout(() => {
+                        const redirectUrl = new URLSearchParams(window.location.search).get('redirect') || '/';
+                        window.location.href = redirectUrl;
+                    }, 1500);
+                },
+                error: function(xhr) {
+                    setLoadingState('loginButton', false);
+                    
+                    let errorMessage = 'Login failed. Please try again.';
+                    if (xhr.responseJSON && xhr.responseJSON.detail) {
+                        errorMessage = xhr.responseJSON.detail;
+                    } else if (xhr.status === 401) {
+                        errorMessage = 'Invalid email or password.';
+                    } else if (xhr.status === 422) {
+                        errorMessage = 'Please enter a valid email and password.';
+                    }
+                    
+                    showError(errorMessage);
+                }
+            });
+        });
+
+        // Handle API key login
+        $('#apiKeyForm').on('submit', function(e) {
+            e.preventDefault();
+            
+            const apiKey = $('#apiKey').val();
+            
+            if (!apiKey) {
+                showError('Please enter an API key.');
+                return;
+            }
+            
+            setLoadingState('apiKeyButton', true);
+            
+            // Test the API key by making an authenticated request
+            $.ajax({
+                url: '/api/v1/users/current',
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${apiKey}`
+                },
+                success: function(response) {
+                    showSuccess('API key validated! Storing for session...');
+                    
+                    // Store API key in session storage for this session
+                    sessionStorage.setItem('apiKey', apiKey);
+                    
+                    // Redirect to dashboard
+                    setTimeout(() => {
+                        const redirectUrl = new URLSearchParams(window.location.search).get('redirect') || '/';
+                        window.location.href = redirectUrl;
+                    }, 1500);
+                },
+                error: function(xhr) {
+                    setLoadingState('apiKeyButton', false);
+                    
+                    let errorMessage = 'Invalid API key.';
+                    if (xhr.responseJSON && xhr.responseJSON.detail) {
+                        errorMessage = xhr.responseJSON.detail;
+                    }
+                    
+                    showError(errorMessage);
+                }
+            });
+        });
+
+        // Load remembered email if exists
+        $(document).ready(function() {
+            const rememberedEmail = localStorage.getItem('rememberedEmail');
+            if (rememberedEmail) {
+                $('#email').val(rememberedEmail);
+                $('#rememberMe').prop('checked', true);
+                $('#password').focus();
+            } else {
+                $('#email').focus();
+            }
+        });
+
+        // Add API key to all AJAX requests if stored
+        $.ajaxSetup({
+            beforeSend: function(xhr) {
+                const apiKey = sessionStorage.getItem('apiKey');
+                if (apiKey) {
+                    xhr.setRequestHeader('Authorization', `Bearer ${apiKey}`);
+                }
+            }
+        });
+    </script>
+</body>
+</html>

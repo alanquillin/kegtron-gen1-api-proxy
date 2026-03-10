@@ -1,18 +1,277 @@
 /* Common styles for Kegtron Dashboard */
 body {
-    background-color: #f8f9fa;
-    padding: 20px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    margin: 0;
+    padding: 0;
 }
 
+/* Navbar styles */
+.navbar {
+    background: rgba(255, 255, 255, 0.98);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    padding: 15px 0;
+}
+
+.navbar-brand {
+    font-weight: bold;
+    color: #667eea;
+    font-size: 22px;
+    text-decoration: none;
+}
+
+.navbar-brand:hover {
+    color: #5a6fd6;
+}
+
+.navbar-nav {
+    display: flex;
+    align-items: center;
+}
+
+.nav-link {
+    color: #6c757d;
+    margin: 0 10px;
+    transition: color 0.2s;
+    text-decoration: none;
+}
+
+.nav-link:hover {
+    color: #667eea;
+}
+
+/* Dropdown styles */
+.dropdown-toggle {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+    border-radius: 8px;
+    padding: 8px 12px;
+    color: white;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+}
+
+.dropdown-toggle:hover {
+    background: linear-gradient(135deg, #5a6fd6 0%, #6a428e 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.dropdown-toggle::after {
+    display: none;
+}
+
+.dropdown-toggle .material-icons {
+    font-size: 24px;
+}
+
+.dropdown-menu {
+    border-radius: 10px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    border: 1px solid #e9ecef;
+    padding: 8px 0;
+    min-width: 200px;
+}
+
+.dropdown-item {
+    color: #495057;
+    padding: 10px 20px;
+    transition: all 0.2s;
+}
+
+.dropdown-item:hover {
+    background-color: #f8f9fa;
+    color: #667eea;
+}
+
+.dropdown-item i,
+.dropdown-item .material-icons {
+    margin-right: 10px;
+    font-size: 18px;
+    vertical-align: middle;
+}
+
+.dropdown-divider {
+    margin: 8px 0;
+}
+
+/* User info in dropdown */
+.dropdown-user-info {
+    padding: 12px 20px;
+}
+
+.dropdown-user-name {
+    font-weight: 600;
+    color: #333;
+    font-size: 16px;
+    margin-bottom: 4px;
+}
+
+.dropdown-user-email {
+    color: #6c757d;
+    font-size: 14px;
+}
+
+/* Container styles */
+.container, .container-fluid {
+    padding-top: 20px;
+}
+
+.main-container {
+    margin-top: 30px;
+    padding: 0 15px;
+}
+
+/* Card styles for main content */
+.content-card {
+    background: white;
+    border-radius: 20px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+    margin-bottom: 30px;
+    overflow: hidden;
+}
+
+.content-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    padding: 30px;
+    text-align: center;
+    color: white;
+}
+
+.content-header h1, .content-header h2 {
+    margin: 0;
+    font-size: 28px;
+    font-weight: bold;
+}
+
+.content-header p {
+    margin: 10px 0 0;
+    opacity: 0.9;
+}
+
+.content-body {
+    padding: 30px;
+}
+
+/* Alert styles */
+.alert {
+    border-radius: 10px;
+    margin-bottom: 20px;
+    display: none;
+}
+
+.alert.show {
+    display: block;
+}
+
+/* Form styles */
+.form-control, .form-select {
+    border-radius: 10px;
+    border: 1px solid #dee2e6;
+    padding: 10px 15px;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+}
+
+.form-label {
+    color: #6c757d;
+    margin-bottom: 8px;
+    font-weight: 500;
+}
+
+/* Button styles */
+.btn-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+    border-radius: 10px;
+    padding: 10px 25px;
+    font-weight: 600;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 7px 14px rgba(50,50,93,.1), 0 3px 6px rgba(0,0,0,.08);
+    background: linear-gradient(135deg, #5a6fd6 0%, #6a428e 100%);
+}
+
+.btn-secondary {
+    background: #6c757d;
+    border: none;
+    border-radius: 10px;
+    padding: 10px 25px;
+    font-weight: 600;
+}
+
+.btn-danger {
+    background: #dc3545;
+    border: none;
+    border-radius: 10px;
+    padding: 10px 25px;
+    font-weight: 600;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.btn-danger:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 7px 14px rgba(220,53,69,.2), 0 3px 6px rgba(0,0,0,.08);
+    background: #c82333;
+}
+
+.btn-info {
+    background: #17a2b8;
+    border: none;
+    border-radius: 10px;
+    padding: 10px 25px;
+    font-weight: 600;
+    color: white;
+}
+
+.btn-info:hover {
+    background: #138496;
+    color: white;
+}
+
+.btn-sm {
+    padding: 6px 15px;
+    font-size: 14px;
+}
+
+/* Loading and error styles */
 .loading {
     text-align: center;
     padding: 50px;
+    color: #6c757d;
 }
 
 .error-message {
     text-align: center;
     padding: 50px;
     color: #dc3545;
+}
+
+.spinner-border {
+    width: 1.5rem;
+    height: 1.5rem;
+    margin-right: 8px;
+}
+
+/* Section styles */
+.section-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #f0f0f0;
 }
 
 /* Device card styles */

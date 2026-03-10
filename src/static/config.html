@@ -3,23 +3,102 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kegtron Gen1 - Device Configuration</title>
+    <title>Kegtron Gen1 API Proxy - Device Configuration</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <style>
+        .auth-loading {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 60vh;
+            text-align: center;
+        }
+        
+        .auth-loading .spinner-border {
+            width: 3rem;
+            height: 3rem;
+            margin-bottom: 1rem;
+        }
+        
+        .content-hidden {
+            display: none !important;
+        }
+    </style>
 </head>
 <body>
-    <div class="container-fluid px-4">
-        <h1 class="text-center mb-4">Kegtron Gen1 - Device Configuration</h1>
-        
-        <div class="row mb-4">
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg">
+        <div class="container">
+            <a class="navbar-brand" href="/">Kegtron Gen1 API Proxy</a>
+            <div class="navbar-nav ms-auto">
+                <div class="dropdown" id="userDropdown">
+                    <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Menu">
+                        <span class="material-icons">menu</span>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li class="dropdown-user-info">
+                            <div class="dropdown-user-name" id="userFullName">User</div>
+                            <div class="dropdown-user-email" id="userEmail">Loading...</div>
+                        </li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="/">
+                            <span class="material-icons">dashboard</span>
+                            Dashboard
+                        </a></li>
+                        <li><a class="dropdown-item active" href="/config.html">
+                            <span class="material-icons">settings</span>
+                            Configuration
+                        </a></li>
+                        <li><a class="dropdown-item" href="/profile.html">
+                            <span class="material-icons">account_circle</span>
+                            Profile
+                        </a></li>
+                        <li class="admin-menu-items" style="display: none;">
+                            <hr class="dropdown-divider">
+                        </li>
+                        <li class="admin-menu-items" style="display: none;">
+                            <a class="dropdown-item" href="/users.html">
+                                <span class="material-icons">people</span>
+                                Users
+                            </a>
+                        </li>
+                        <li class="admin-menu-items" style="display: none;">
+                            <a class="dropdown-item" href="/service_accounts.html">
+                                <span class="material-icons">smart_toy</span>
+                                Service Accounts
+                            </a>
+                        </li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="/logout">
+                            <span class="material-icons">logout</span>
+                            Logout
+                        </a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Authentication loading indicator -->
+    <div id="authLoading" class="auth-loading">
+        &nbsp;
+    </div>
+    
+    <!-- Main content (initially hidden) -->
+    <div class="container main-container content-hidden" id="mainContent">
+        <div class="content-card">
+            <div class="content-header">
+                <h1>Device Configuration</h1>
+                <p>Configure your Kegtron devices and ports</p>
+            </div>
+            <div class="content-body">
+                <div class="row mb-4">
             <div class="col-12">
-                <a href="/" class="btn btn-secondary btn-sm mb-3">
-                    <span class="material-icons" style="font-size: 16px; vertical-align: text-bottom;">arrow_back</span>
-                    Back to Dashboard
-                </a>
-                
                 <div class="config-section">
                     <h3>Select Device/Port</h3>
                     <select class="form-select" id="devicePortSelector" style="max-width: 400px;">
@@ -61,138 +140,69 @@
                                     <div class="mb-3">
                                         <label for="displayUnit" class="form-label">Display Unit</label>
                                         <select class="form-select" id="displayUnit" style="max-width: 200px;">
-                                            <option value="">-- Use default --</option>
+                                            <option value="ml">Milliliters (mL)</option>
+                                            <option value="oz">Fluid Ounces (oz)</option>
+                                            <option value="l">Liters (L)</option>
                                             <option value="gal">Gallons (gal)</option>
-                                            <option value="mL">Milliliters (mL)</option>
-                                            <option value="L">Liters (L)</option>
-                                            <option value="oz">Ounces (oz)</option>
+                                            <option value="pnt">Pints (pnt)</option>
                                         </select>
-                                        <small class="form-text text-muted">If not set, uses system default</small>
+                                        <small class="form-text text-muted">Used for display only</small>
                                     </div>
-                                    <button type="submit" class="btn btn-warning" id="displayUnitBtn">
-                                        <span id="displayUnitBtnText">Set Display Unit</span>
-                                        <span class="spinner-border spinner-border-sm ms-2" role="status" id="displayUnitSpinner" style="display: none;">
-                                            <span class="visually-hidden">Loading...</span>
-                                        </span>
-                                    </button>
-                                    <div id="displayUnitSuccess" class="alert alert-success mt-3" style="display: none;">
-                                        Display unit updated successfully!
+                                    <button type="submit" class="btn btn-primary btn-sm">Set Display Unit</button>
+                                </form>
+                            </div>
+
+                            <div class="command-group">
+                                <h5>Set Beer/Keg Name</h5>
+                                <form id="beerNameForm">
+                                    <div class="mb-3">
+                                        <input type="text" class="form-control" id="beerName" placeholder="Enter beer/keg name" style="max-width: 250px;">
+                                        <small class="form-text text-muted">Custom name for this port</small>
                                     </div>
-                                    <div id="displayUnitError" class="alert alert-danger mt-3" style="display: none;">
-                                        Error updating display unit.
+                                    <button type="submit" class="btn btn-primary btn-sm">Set Name</button>
+                                </form>
+                            </div>
+
+                            <div class="command-group">
+                                <h5>New Keg</h5>
+                                <form id="newKegForm">
+                                    <div class="mb-3">
+                                        <label for="kegSize" class="form-label">Keg Size (mL)</label>
+                                        <input type="number" class="form-control" id="kegSize" placeholder="e.g., 18927" min="0" step="1" style="max-width: 200px;">
+                                        <small class="form-text text-muted">Enter size in milliliters</small>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="startVolume" class="form-label">Start Volume (mL)</label>
+                                        <input type="number" class="form-control" id="startVolume" placeholder="Leave empty for full keg" min="0" step="1" style="max-width: 200px;">
+                                        <small class="form-text text-muted">Optional - defaults to keg size</small>
+                                    </div>
+                                    <button type="submit" class="btn btn-primary btn-sm">Start New Keg</button>
+                                    <div class="alert alert-warning mt-2">
+                                        <small><strong>Note:</strong> This will reset the volume counter</small>
                                     </div>
                                 </form>
                             </div>
-                            
-                            <div class="command-group">
-                                <h5>Reset Volume</h5>
-                                <form id="resetVolumeForm">
-                                
-                                <div class="mb-3">
-                                    <label for="resetVolumeUnit" class="form-label">Unit</label>
-                                    <select class="form-select" id="resetVolumeUnit" style="max-width: 200px;">
-                                        <option value="">-- Use default --</option>
-                                        <option value="gal">Gallons (gal)</option>
-                                        <option value="mL">Milliliters (mL)</option>
-                                        <option value="L">Liters (L)</option>
-                                        <option value="oz">Ounces (oz)</option>
-                                    </select>
-                                </div>
-                                
-                                <div class="mb-3">
-                                    <label for="kegSize" class="form-label">Keg Size</label>
-                                    <input type="number" class="form-control" id="kegSize" step="0.01" min="0" placeholder="Enter keg size" style="max-width: 200px;">
-                                </div>
-                                
-                                <div class="mb-3">
-                                    <label for="startingVolume" class="form-label">Starting Volume</label>
-                                    <input type="number" class="form-control" id="startingVolume" step="0.01" min="0" placeholder="Enter starting volume" style="max-width: 200px;">
-                                    <div class="invalid-feedback validation-feedback">
-                                        Starting volume cannot be larger than keg size
-                                    </div>
-                                </div>
-                                
-                                <button type="submit" class="btn btn-warning" id="resetVolumeBtn">
-                                    <span id="resetVolumeBtnText">Send Reset Volume Command</span>
-                                    <span class="spinner-border spinner-border-sm ms-2" role="status" id="resetVolumeSpinner" style="display: none;">
-                                        <span class="visually-hidden">Loading...</span>
-                                    </span>
-                                </button>
-                                <div id="resetSuccess" class="alert alert-success mt-3" style="display: none;">
-                                    Reset volume command sent successfully!
-                                </div>
-                                <div id="resetError" class="alert alert-danger mt-3" style="display: none;">
-                                    Error sending reset volume command.
-                                </div>
-                            </form>
-                        </div>
                 </div>
             </div>
-            
-            <div class="col-lg-4 mb-3">
+
+            <div class="col-lg-4 mb-3" id="currentStatusContent" style="display: none;">
                 <div class="config-section">
-                    <h3>Device/Port Information</h3>
-                    <div id="detailsContent">
-                        <div class="detail-row">
-                            <span class="detail-label">Device ID:</span>
-                            <span class="detail-value" id="detail-deviceId">-</span>
+                    <h3>Current Status</h3>
+                    <div id="currentStatus">
+                        <div class="mb-3">
+                            <strong>Loading...</strong>
                         </div>
-                        <div class="detail-row">
-                            <span class="detail-label">Device Name:</span>
-                            <span class="detail-value" id="detail-deviceName">-</span>
-                        </div>
-                        <div class="detail-row">
-                            <span class="detail-label">Model:</span>
-                            <span class="detail-value" id="detail-model">-</span>
-                        </div>
-                        <div class="detail-row">
-                            <span class="detail-label">MAC Address:</span>
-                            <span class="detail-value" id="detail-mac">-</span>
-                        </div>
-                        <div class="detail-row">
-                            <span class="detail-label">Signal Strength:</span>
-                            <span class="detail-value" id="detail-rssi">-</span>
-                        </div>
-                        <div class="detail-row">
-                            <span class="detail-label">Port Count:</span>
-                            <span class="detail-value" id="detail-portCnt">-</span>
-                        </div>
-                        <hr>
-                        <div class="detail-row">
-                            <span class="detail-label">Port Index:</span>
-                            <span class="detail-value" id="detail-portIndex">-</span>
-                        </div>
-                        <div class="detail-row">
-                            <span class="detail-label">Port Name:</span>
-                            <span class="detail-value" id="detail-portName">-</span>
-                        </div>
-                        <div class="detail-row">
-                            <span class="detail-label">Keg Size:</span>
-                            <span class="detail-value" id="detail-kegSize">-</span>
-                        </div>
-                        <div class="detail-row">
-                            <span class="detail-label">Start Volume:</span>
-                            <span class="detail-value" id="detail-startVolume">-</span>
-                        </div>
-                        <div class="detail-row">
-                            <span class="detail-label">Volume Dispensed:</span>
-                            <span class="detail-value" id="detail-volumeDispensed">-</span>
-                        </div>
-                        <div class="detail-row">
-                            <span class="detail-label">Volume Remaining:</span>
-                            <span class="detail-value" id="detail-volumeRemaining">-</span>
-                        </div>
-                        <div class="detail-row">
-                            <span class="detail-label">Display Unit:</span>
-                            <span class="detail-value" id="detail-displayUnit">-</span>
-                        </div>
-                        <div class="detail-row">
-                            <span class="detail-label">Pulse Count:</span>
-                            <span class="detail-value" id="detail-pulseCount">-</span>
-                        </div>
-                        <div class="detail-row">
-                            <span class="detail-label">Last Updated:</span>
-                            <span class="detail-value" id="detail-lastUpdate">-</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+                <!-- Command Response Section -->
+                <div class="row mt-3" id="responseSection" style="display: none;">
+                    <div class="col-12">
+                        <div class="config-section">
+                            <h3>Command Response</h3>
+                            <div id="commandResponse" class="alert" style="display: none;"></div>
                         </div>
                     </div>
                 </div>
@@ -201,373 +211,315 @@
     </div>
 
     <script>
-        let devices = [];
         let selectedDevice = null;
-        let selectedPortIndex = null;
+        let selectedPort = null;
+        let currentUser = null;
 
-        function formatDateTime(isoString) {
-            if (!isoString) return 'Never';
-            const date = new Date(isoString);
-            const month = (date.getMonth() + 1).toString().padStart(2, '0');
-            const day = date.getDate().toString().padStart(2, '0');
-            const year = date.getFullYear();
-            const hours = date.getHours().toString().padStart(2, '0');
-            const minutes = date.getMinutes().toString().padStart(2, '0');
-            const seconds = date.getSeconds().toString().padStart(2, '0');
-            return `${month}/${day}/${year} ${hours}:${minutes}:${seconds}`;
-        }
-
-        function formatDeviceDisplayName(device, port) {
-            if (port) {
-                let displayName = `${device.name || device.id} - ${port.portName || `Port ${port.portIndex}`}`;
-                return displayName;
-            }
-            return device.name || device.id;
-        }
-
-        function loadDevices() {
+        // Check authentication and redirect if needed
+        function checkAuthentication() {
             $.ajax({
-                url: '/api/v1/devices',
+                url: '/api/v1/users/current',
                 method: 'GET',
-                success: function(data) {
-                    devices = data;
-                    const selector = $('#devicePortSelector');
-                    selector.empty();
-                    selector.append('<option value="">-- Select a device/port --</option>');
+                success: function(userData) {
+                    currentUser = userData;
                     
-                    // Create device/port combinations and sort them
-                    const options = [];
-                    for (const device of devices) {
-                        if (device.ports && Object.keys(device.ports).length > 0) {
-                            for (const [portIndex, port] of Object.entries(device.ports)) {
-                                options.push({
-                                    device: device,
-                                    port: port,
-                                    portIndex: portIndex,
-                                    sortKey: `${device.name || device.id}_${port.portName || `Port ${portIndex}`}`,
-                                    displayName: formatDeviceDisplayName(device, port),
-                                    value: `${device.id}|${portIndex}`
-                                });
-                            }
-                        } else {
-                            // Device without ports
-                            options.push({
-                                device: device,
-                                port: null,
-                                portIndex: 0,
-                                sortKey: `${device.name || device.id}_Port 0`,
-                                displayName: `${device.name || device.id} - Port 0`,
-                                value: `${device.id}|0`
-                            });
-                        }
+                    // Update user info in dropdown
+                    const fullName = (userData.firstName || userData.lastName) ? 
+                        `${userData.firstName || ''} ${userData.lastName || ''}`.trim() : 
+                        userData.email || 'User';
+                    $('#userFullName').text(fullName);
+                    $('#userEmail').text(userData.email || '');
+                    
+                    // Show/hide admin menu items
+                    if (userData.admin) {
+                        $('.admin-menu-items').show();
+                    } else {
+                        $('.admin-menu-items').hide();
                     }
                     
-                    // Sort by sortKey (device name/id then port name)
-                    options.sort((a, b) => a.sortKey.localeCompare(b.sortKey));
-                    
-                    // Add sorted options to dropdown
-                    for (const option of options) {
-                        selector.append(`<option value="${option.value}">${option.displayName}</option>`);
-                    }
-                    
-                    // Check for device_id and port_index query parameters
-                    const urlParams = new URLSearchParams(window.location.search);
-                    const deviceId = urlParams.get('device_id');
-                    const portIndex = urlParams.get('port_index');
-                    
-                    if (deviceId) {
-                        let valueToSelect = null;
-                        if (portIndex !== null) {
-                            // Select specific port
-                            valueToSelect = `${deviceId}|${portIndex}`;
-                        } else {
-                            // Select first port of the device
-                            const deviceOption = options.find(o => o.device.id === deviceId);
-                            if (deviceOption) {
-                                valueToSelect = deviceOption.value;
-                            }
-                        }
-                        
-                        if (valueToSelect && selector.find(`option[value="${valueToSelect}"]`).length > 0) {
-                            selector.val(valueToSelect);
-                            loadDevicePortConfig(valueToSelect);
-                        }
-                    }
+                    // Hide loading, show content
+                    $('#authLoading').hide();
+                    $('#mainContent').removeClass('content-hidden');
+                    // Initialize the page
+                    initializePage();
                 },
-                error: function(xhr, status, error) {
-                    console.error('Error loading devices:', error);
+                error: function() {
+                    // Not authenticated, redirect to login
+                    window.location.href = '/login.html?redirect=' + encodeURIComponent(window.location.href);
                 }
             });
         }
 
-        function loadDevicePortConfig(value) {
+        function initializePage() {
+            // Check for device_id in URL parameters
+            const urlParams = new URLSearchParams(window.location.search);
+            const deviceId = urlParams.get('device_id');
+            
+            loadDevices(deviceId);
+            
+            // Set up form handlers
+            $('#devicePortSelector').on('change', handleDevicePortSelection);
+            $('#deviceDetailsForm').on('submit', handleDeviceDetailsSave);
+            $('#displayUnitForm').on('submit', handleDisplayUnitCommand);
+            $('#beerNameForm').on('submit', handleBeerNameCommand);
+            $('#newKegForm').on('submit', handleNewKegCommand);
+        }
+
+        function loadDevices(preselectedDeviceId) {
+            fetch('/api/v1/devices')
+                .then(response => response.json())
+                .then(devices => {
+                    const selector = document.getElementById('devicePortSelector');
+                    selector.innerHTML = '<option value="">-- Select a device/port --</option>';
+                    
+                    devices.forEach(device => {
+                        if (device.ports && typeof device.ports === 'object') {
+                            const ports = Array.isArray(device.ports) ? device.ports : Object.values(device.ports);
+                            ports.forEach(port => {
+                                if (port && typeof port === 'object') {
+                                    const option = document.createElement('option');
+                                    const value = `${device.id}|${port.portIndex}`;
+                                    option.value = value;
+                                    const portName = port.portName || `Port ${port.portIndex + 1}`;
+                                    option.textContent = `${device.id} - ${portName}`;
+                                    selector.appendChild(option);
+                                    
+                                    // Pre-select if device_id matches
+                                    if (preselectedDeviceId === device.id && port.portIndex === 0) {
+                                        option.selected = true;
+                                    }
+                                }
+                            });
+                        }
+                    });
+                    
+                    // Trigger selection if pre-selected
+                    if (preselectedDeviceId) {
+                        handleDevicePortSelection();
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading devices:', error);
+                    showCommandResponse('Error loading devices: ' + error.message, 'danger');
+                });
+        }
+
+        function handleDevicePortSelection() {
+            const selector = document.getElementById('devicePortSelector');
+            const value = selector.value;
+            
             if (!value) {
                 $('#configContent').hide();
+                selectedDevice = null;
+                selectedPort = null;
                 return;
             }
             
             const [deviceId, portIndex] = value.split('|');
-            selectedDevice = devices.find(d => d.id === deviceId);
-            selectedPortIndex = portIndex;
             
-            if (!selectedDevice) {
-                $('#configContent').hide();
-                return;
-            }
-            
-            $('#configContent').show();
-            $('#portContent').show();
-            
-            // Populate device details
-            $('#deviceName').val(selectedDevice.name || '');
-            
-            // Load port-specific display unit if it exists
-            const port = selectedDevice.ports && selectedDevice.ports[portIndex];
-            if (port) {
-                $('#displayUnit').val(port.displayUnit || '');
-                $('#resetVolumeUnit').val(port.displayUnit || '');
-            } else {
-                $('#displayUnit').val('');
-                $('#resetVolumeUnit').val('');
-            }
-            
-            // Update details panel
-            updateDetailsPanel(selectedDevice, port, portIndex);
-            
-            // Clear any previous messages
-            $('.alert').hide();
-        }
-        
-        function updateDetailsPanel(device, port, portIndex) {
-            $('#detail-deviceId').text(device.id || '-');
-            $('#detail-deviceName').text(device.name || 'Not set');
-            $('#detail-model').text(device.model || '-');
-            $('#detail-mac').text(device.mac || '-');
-            $('#detail-rssi').text(device.rssi ? `${device.rssi} dBm` : '-');
-            $('#detail-portCnt').text(device.portCnt || '-');
-            
-            if (port) {
-                $('#detail-portIndex').text(portIndex);
-                $('#detail-portName').text(port.portName || 'Not set');
-                $('#detail-kegSize').text(port.kegSize != null ? `${port.kegSize} ${port.displayUnit || 'mL'}` : '-');
-                $('#detail-startVolume').text(port.startVolume != null ? `${port.startVolume} ${port.displayUnit || 'mL'}` : '-');
-                $('#detail-volumeDispensed').text(port.volumeDispensed != null ? `${port.volumeDispensed} ${port.displayUnit || 'mL'}` : '-');
-                
-                const volumeRemaining = (port.startVolume != null && port.volumeDispensed != null) 
-                    ? (port.startVolume - port.volumeDispensed).toFixed(2) 
-                    : null;
-                $('#detail-volumeRemaining').text(volumeRemaining != null ? `${volumeRemaining} ${port.displayUnit || 'mL'}` : '-');
-                
-                $('#detail-displayUnit').text(port.displayUnit || 'System default');
-                $('#detail-pulseCount').text(port.pulseCount || '-');
-                $('#detail-lastUpdate').text(formatDateTime(port.lastUpdateTimestampUtc || device.lastAdvertisementTimestampUtc));
-            } else {
-                $('#detail-portIndex').text(portIndex);
-                $('#detail-portName').text('Not set');
-                $('#detail-kegSize').text('-');
-                $('#detail-startVolume').text('-');
-                $('#detail-volumeDispensed').text('-');
-                $('#detail-volumeRemaining').text('-');
-                $('#detail-displayUnit').text('System default');
-                $('#detail-pulseCount').text('-');
-                $('#detail-lastUpdate').text(formatDateTime(device.lastAdvertisementTimestampUtc));
-            }
-        }
-
-        function validateResetVolume() {
-            const kegSize = parseFloat($('#kegSize').val());
-            const startingVolume = parseFloat($('#startingVolume').val());
-            
-            if (startingVolume > kegSize) {
-                $('#startingVolume').addClass('is-invalid');
-                $('.validation-feedback').addClass('show');
-                return false;
-            }
-            
-            $('#startingVolume').removeClass('is-invalid');
-            $('.validation-feedback').removeClass('show');
-            return true;
-        }
-
-        function refreshDeviceData() {
-            // Reload device data from API
-            $.ajax({
-                url: '/api/v1/devices',
-                method: 'GET',
-                success: function(data) {
-                    devices = data;
+            // Load device details
+            fetch(`/api/v1/devices/${deviceId}`)
+                .then(response => response.json())
+                .then(device => {
+                    selectedDevice = device;
+                    const ports = Array.isArray(device.ports) ? device.ports : Object.values(device.ports);
+                    selectedPort = ports.find(p => p.portIndex === parseInt(portIndex));
                     
-                    // Find the current device and port
-                    selectedDevice = devices.find(d => d.id === selectedDevice.id);
-                    if (selectedDevice) {
-                        const port = selectedDevice.ports && selectedDevice.ports[selectedPortIndex];
-                        
-                        // Update the details panel with fresh data
-                        updateDetailsPanel(selectedDevice, port, selectedPortIndex);
-                        
-                        // Update display unit dropdowns in case they changed
-                        if (port) {
-                            $('#displayUnit').val(port.displayUnit || '');
-                            $('#resetVolumeUnit').val(port.displayUnit || '');
-                        }
+                    // Update device details form
+                    $('#deviceName').val(device.name || '');
+                    
+                    // Show relevant sections
+                    $('#configContent').show();
+                    $('#portContent').show();
+                    $('#currentStatusContent').show();
+                    
+                    // Update port-specific fields
+                    if (selectedPort) {
+                        $('#displayUnit').val(selectedPort.displayUnit || 'ml');
+                        $('#beerName').val(selectedPort.portName || '');
+                        updateCurrentStatus();
                     }
-                },
-                error: function(xhr, status, error) {
-                    console.error('Error refreshing device data:', error);
-                }
-            });
+                })
+                .catch(error => {
+                    console.error('Error loading device details:', error);
+                    showCommandResponse('Error loading device details: ' + error.message, 'danger');
+                });
         }
 
-        $('#devicePortSelector').on('change', function() {
-            const value = $(this).val();
-            if (value) {
-                loadDevicePortConfig(value);
-                // Update URL without reloading
-                const [deviceId, portIndex] = value.split('|');
-                const url = new URL(window.location);
-                url.searchParams.set('device_id', deviceId);
-                url.searchParams.set('port_index', portIndex);
-                window.history.pushState({}, '', url);
+        function updateCurrentStatus() {
+            if (!selectedPort) return;
+            
+            const volumeLeft = selectedPort.startVolume - selectedPort.volumeDispensed;
+            const percentLeft = selectedPort.kegSize > 0 ? ((volumeLeft / selectedPort.kegSize) * 100).toFixed(1) : 0;
+            const displayUnit = selectedPort.displayUnit || 'mL';
+            
+            let statusHtml = `
+                <div class="mb-2"><strong>Port Name:</strong> ${selectedPort.portName || 'Not set'}</div>
+                <div class="mb-2"><strong>Display Unit:</strong> ${displayUnit}</div>
+            `;
+            
+            if (selectedPort.kegSize > 0) {
+                statusHtml += `
+                    <div class="mb-2"><strong>Keg Size:</strong> ${selectedPort.kegSize} mL</div>
+                    <div class="mb-2"><strong>Start Volume:</strong> ${selectedPort.startVolume} mL</div>
+                    <div class="mb-2"><strong>Volume Dispensed:</strong> ${selectedPort.volumeDispensed.toFixed(1)} mL</div>
+                    <div class="mb-2"><strong>Volume Left:</strong> ${volumeLeft.toFixed(1)} mL (${percentLeft}%)</div>
+                `;
+                
+                if (selectedPort.lastPour > 0) {
+                    statusHtml += `<div class="mb-2"><strong>Last Pour:</strong> ${selectedPort.lastPour.toFixed(1)} mL</div>`;
+                }
             } else {
-                $('#configContent').hide();
+                statusHtml += `<div class="mb-2 text-muted">No keg configured</div>`;
             }
-        });
+            
+            $('#currentStatus').html(statusHtml);
+        }
 
-        $('#deviceDetailsForm').on('submit', function(e) {
+        function handleDeviceDetailsSave(e) {
             e.preventDefault();
             
             if (!selectedDevice) return;
             
-            const updateData = {
-                name: $('#deviceName').val() || null
-            };
+            const deviceName = $('#deviceName').val();
             
-            $.ajax({
-                url: `/api/v1/devices/${selectedDevice.id}`,
+            fetch(`/api/v1/devices/${selectedDevice.id}`, {
                 method: 'PATCH',
-                contentType: 'application/json',
-                data: JSON.stringify(updateData),
-                success: function(response) {
-                    $('#saveSuccess').show();
-                    $('#saveError').hide();
-                    setTimeout(() => $('#saveSuccess').fadeOut(), 3000);
-                    
-                    // Reload devices to get updated data
-                    loadDevices();
+                headers: {
+                    'Content-Type': 'application/json'
                 },
-                error: function(xhr, status, error) {
-                    $('#saveError').show();
-                    $('#saveSuccess').hide();
-                    console.error('Error saving device details:', error);
-                }
+                body: JSON.stringify({
+                    name: deviceName || null
+                })
+            })
+            .then(response => {
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                return response.json();
+            })
+            .then(data => {
+                $('#saveSuccess').fadeIn().delay(2000).fadeOut();
+            })
+            .catch(error => {
+                console.error('Error saving device details:', error);
+                $('#saveError').fadeIn().delay(3000).fadeOut();
             });
-        });
+        }
 
-        $('#displayUnitForm').on('submit', function(e) {
+        function handleDisplayUnitCommand(e) {
             e.preventDefault();
             
-            if (!selectedDevice || selectedPortIndex === null) return;
+            if (!selectedDevice || !selectedPort) return;
             
-            // Show loading state
-            const $btn = $('#displayUnitBtn');
-            const $spinner = $('#displayUnitSpinner');
-            const $btnText = $('#displayUnitBtnText');
+            const displayUnit = $('#displayUnit').val();
             
-            $btn.prop('disabled', true);
-            $spinner.show();
-            $btnText.text('Updating...');
-            
-            const updateData = {
-                displayUnit: $('#displayUnit').val() || null
-            };
-            
-            $.ajax({
-                url: `/api/v1/devices/${selectedDevice.id}/ports/${selectedPortIndex}`,
-                method: 'PATCH',
-                contentType: 'application/json',
-                data: JSON.stringify(updateData),
-                success: function(response) {
-                    $('#displayUnitSuccess').show();
-                    $('#displayUnitError').hide();
-                    setTimeout(() => $('#displayUnitSuccess').fadeOut(), 3000);
-                    
-                    // Refresh device data and details
-                    refreshDeviceData();
-                },
-                error: function(xhr, status, error) {
-                    $('#displayUnitError').show();
-                    $('#displayUnitSuccess').hide();
-                    console.error('Error updating display unit:', error);
-                },
-                complete: function() {
-                    // Reset button state
-                    $btn.prop('disabled', false);
-                    $spinner.hide();
-                    $btnText.text('Set Display Unit');
-                }
-            });
-        });
+            sendPortCommand('display_unit', { display_unit: displayUnit });
+        }
 
-        $('#resetVolumeForm').on('submit', function(e) {
+        function handleBeerNameCommand(e) {
             e.preventDefault();
             
-            if (!selectedDevice || selectedPortIndex === null || !validateResetVolume()) return;
+            if (!selectedDevice || !selectedPort) return;
             
-            // Show loading state
-            const $btn = $('#resetVolumeBtn');
-            const $spinner = $('#resetVolumeSpinner');
-            const $btnText = $('#resetVolumeBtnText');
+            const beerName = $('#beerName').val();
             
-            $btn.prop('disabled', true);
-            $spinner.show();
-            $btnText.text('Sending command...');
+            if (!beerName) {
+                showCommandResponse('Please enter a beer/keg name', 'warning');
+                return;
+            }
             
-            const commandData = {
-                kegSize: parseFloat($('#kegSize').val()),
-                startVolume: parseFloat($('#startingVolume').val()),
-                unit: $('#resetVolumeUnit').val() || 'mL'
+            sendPortCommand('beer_name', { beer_name: beerName });
+        }
+
+        function handleNewKegCommand(e) {
+            e.preventDefault();
+            
+            if (!selectedDevice || !selectedPort) return;
+            
+            const kegSize = parseInt($('#kegSize').val());
+            const startVolume = $('#startVolume').val() ? parseInt($('#startVolume').val()) : null;
+            
+            if (!kegSize || kegSize <= 0) {
+                showCommandResponse('Please enter a valid keg size', 'warning');
+                return;
+            }
+            
+            if (startVolume !== null && startVolume > kegSize) {
+                showCommandResponse('Start volume cannot be greater than keg size', 'warning');
+                return;
+            }
+            
+            const params = { keg_size: kegSize };
+            if (startVolume !== null) {
+                params.start_volume = startVolume;
+            }
+            
+            sendPortCommand('new_keg', params);
+        }
+
+        function sendPortCommand(command, params) {
+            if (!selectedDevice || selectedPort === null) return;
+            
+            const requestData = {
+                command: command,
+                port_index: selectedPort.portIndex,
+                ...params
             };
             
-            $.ajax({
-                url: `/api/v1/devices/${selectedDevice.id}/port/${selectedPortIndex}/rpc/Kegtron.ResetVolume`,
+            fetch(`/api/v1/devices/${selectedDevice.id}/command`, {
                 method: 'POST',
-                contentType: 'application/json',
-                data: JSON.stringify(commandData),
-                success: function(response) {
-                    $('#resetSuccess').show();
-                    $('#resetError').hide();
-                    setTimeout(() => $('#resetSuccess').fadeOut(), 3000);
-                    
-                    // Clear form
-                    $('#kegSize').val('');
-                    $('#startingVolume').val('');
-                    
-                    // Refresh device data and details
-                    refreshDeviceData();
+                headers: {
+                    'Content-Type': 'application/json'
                 },
-                error: function(xhr, status, error) {
-                    $('#resetError').show();
-                    $('#resetSuccess').hide();
-                    console.error('Error sending reset volume command:', error);
-                },
-                complete: function() {
-                    // Reset button state
-                    $btn.prop('disabled', false);
-                    $spinner.hide();
-                    $btnText.text('Send Reset Volume Command');
-                }
+                body: JSON.stringify(requestData)
+            })
+            .then(response => {
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                return response.json();
+            })
+            .then(data => {
+                showCommandResponse(`Command "${command}" executed successfully!`, 'success');
+                
+                // Reload device to update status
+                setTimeout(() => {
+                    handleDevicePortSelection();
+                }, 1000);
+            })
+            .catch(error => {
+                console.error('Error sending command:', error);
+                showCommandResponse(`Error executing command: ${error.message}`, 'danger');
             });
-        });
+        }
 
-        // Real-time validation
-        $('#startingVolume, #kegSize').on('input', function() {
-            if ($('#kegSize').val() && $('#startingVolume').val()) {
-                validateResetVolume();
+        function showCommandResponse(message, type) {
+            const responseDiv = $('#commandResponse');
+            responseDiv.removeClass('alert-success alert-danger alert-warning')
+                       .addClass(`alert-${type}`)
+                       .html(message)
+                       .fadeIn();
+            
+            $('#responseSection').show();
+            
+            // Auto-hide after 5 seconds for success messages
+            if (type === 'success') {
+                setTimeout(() => {
+                    responseDiv.fadeOut();
+                }, 5000);
+            }
+        }
+
+        // Add API key to all AJAX requests if stored
+        $.ajaxSetup({
+            beforeSend: function(xhr) {
+                const apiKey = sessionStorage.getItem('apiKey');
+                if (apiKey) {
+                    xhr.setRequestHeader('Authorization', `Bearer ${apiKey}`);
+                }
             }
         });
 
+        // Initialize on page load
         $(document).ready(function() {
-            loadDevices();
+            checkAuthentication();
         });
     </script>
 </body>

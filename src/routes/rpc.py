@@ -1,15 +1,11 @@
-import struct
-from typing import Any, Optional
-
-from fastapi import APIRouter, Depends, HTTPException, Request
-from fastapi.responses import JSONResponse
-from pydantic import BaseModel, Field
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 import kegtron
 from db import get_async_db
 from db.devices import Device as deviceDB
 from db.ports import Port as portDB
+from dependencies.auth import AuthUser, require_user
 from kegtron import gatt
 from lib import logging
 from lib.config import Config
@@ -25,7 +21,7 @@ router_devices = APIRouter(prefix="/api/v1/devices/{device_id}/rpc")
 
 
 @router_devices.post("/Kegtron.UnlockWriteAll")
-async def unlock_write_all_rpc(device_id: str, db: AsyncSession = Depends(get_async_db)):
+async def unlock_write_all_rpc(device_id: str, db: AsyncSession = Depends(get_async_db), current_user: AuthUser = Depends(require_user)):
     device = await deviceDB.get(device_id, db)
     if not device:
         raise HTTPException(status_code=404, detail=f"Unknown device with id {device_id}")
@@ -36,7 +32,7 @@ async def unlock_write_all_rpc(device_id: str, db: AsyncSession = Depends(get_as
 
 
 @router_ports.post("/Kegtron.UnlockWrite")
-async def unlock_write_rpc(device_id: str, port_index: int, db: AsyncSession = Depends(get_async_db)):
+async def unlock_write_rpc(device_id: str, port_index: int, db: AsyncSession = Depends(get_async_db), current_user: AuthUser = Depends(require_user)):
     device = await deviceDB.get(device_id, db=db)
     if not device:
         raise HTTPException(status_code=404, detail=f"Unknown device with id {device_id}")
@@ -53,7 +49,9 @@ async def unlock_write_rpc(device_id: str, port_index: int, db: AsyncSession = D
 
 
 @router_ports.post("/Kegtron.ResetVolume")
-async def reset_volume_rpc(device_id: str, port_index: int, request: ResetVolumeRequest, db: AsyncSession = Depends(get_async_db)):
+async def reset_volume_rpc(
+    device_id: str, port_index: int, request: ResetVolumeRequest, db: AsyncSession = Depends(get_async_db), current_user: AuthUser = Depends(require_user)
+):
     # raise HTTPException(status_code=405, detail="Method not yet implemented")
     device = await deviceDB.get(device_id, db)
     if not device:
@@ -96,13 +94,13 @@ async def reset_volume_rpc(device_id: str, port_index: int, request: ResetVolume
         updates["start_volume"] = start_volume_ml
         u_data[volume_key] = gatt.to_bytearray(start_volume_ml, 2)
 
-    LOGGER.debug(f"attempting to write data to device: {u_data}")
+    LOGGER.debug("attempting to write data to device: %s", u_data)
     await gatt.unlock(device, port_index)
-    LOGGER.debug(f"attempting to write data to device {device_id}, data: {u_data}")
+    LOGGER.debug("attempting to write data to device %s, data: %s", device_id, u_data)
     await gatt.write_chars(device, u_data)
-    LOGGER.debug(f"done writing to device {device_id}")
+    LOGGER.debug("done writing to device %s", device_id)
 
-    LOGGER.debug(f"Updating port DB data on device {device_id} on port {port_index}, data: {updates}")
+    LOGGER.debug("Updating port DB data on device %s on port %s, data: %s", device_id, port_index, updates)
     await port.update(db, **updates)
 
     return {"success": True}

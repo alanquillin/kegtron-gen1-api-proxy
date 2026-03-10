@@ -38,6 +38,9 @@ with patch.dict(os.environ, {'KEGTRON_PROXY_STATIC_FILES_DIR': temp_static}):
     
     from api import api
     from db import Base, get_async_db
+from dependencies.auth import get_optional_user, require_user, require_admin, AuthUser
+
+# Session middleware is already added in api.py, no need to add it again
 
 
 @pytest.fixture(scope="session")
@@ -102,14 +105,115 @@ def mock_config():
 
 
 @pytest.fixture
-async def client(async_db_session, mock_config):
+def mock_auth_user():
+    """Create a mock authenticated user."""
+    return AuthUser(
+        id_="test-user-id",
+        first_name="Test",
+        last_name="User",
+        email="test@example.com",
+        profile_pic=None,
+        api_key="test-api-key",
+        admin=False,
+        service_account=False,
+        service_name=None
+    )
+
+
+@pytest.fixture
+def mock_admin_user():
+    """Create a mock admin user."""
+    return AuthUser(
+        id_="admin-user-id",
+        first_name="Admin",
+        last_name="User",
+        email="admin@example.com",
+        profile_pic=None,
+        api_key="admin-api-key",
+        admin=True,
+        service_account=False,
+        service_name=None
+    )
+
+
+@pytest.fixture
+async def client(async_db_session, mock_config, mock_auth_user):
     """Create a test client with mocked dependencies."""
     from httpx import ASGITransport
     
     async def override_get_db():
         yield async_db_session
     
+    async def override_get_user():
+        return mock_auth_user
+    
+    async def override_require_user():
+        return mock_auth_user
+    
     api.dependency_overrides[get_async_db] = override_get_db
+    api.dependency_overrides[get_optional_user] = override_get_user
+    api.dependency_overrides[require_user] = override_require_user
+    # Don't override require_admin - let it use the actual dependency which checks admin status
+    
+    # Mock the config
+    with patch('api.CONFIG', mock_config):
+        with patch('routes.devices.CONFIG', mock_config):
+            with patch('routes.ports.CONFIG', mock_config):
+                with patch('routes.rpc.CONFIG', mock_config):
+                    transport = ASGITransport(app=api)
+                    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+                        yield ac
+    
+    api.dependency_overrides.clear()
+
+
+@pytest.fixture
+async def client_no_auth(async_db_session, mock_config):
+    """Create a test client without authentication."""
+    from httpx import ASGITransport
+    
+    async def override_get_db():
+        yield async_db_session
+    
+    async def override_get_user():
+        return None
+    
+    api.dependency_overrides[get_async_db] = override_get_db
+    api.dependency_overrides[get_optional_user] = override_get_user
+    
+    # Mock the config
+    with patch('api.CONFIG', mock_config):
+        with patch('routes.devices.CONFIG', mock_config):
+            with patch('routes.ports.CONFIG', mock_config):
+                with patch('routes.rpc.CONFIG', mock_config):
+                    transport = ASGITransport(app=api)
+                    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+                        yield ac
+    
+    api.dependency_overrides.clear()
+
+
+@pytest.fixture
+async def client_admin(async_db_session, mock_config, mock_admin_user):
+    """Create a test client with admin authentication."""
+    from httpx import ASGITransport
+    
+    async def override_get_db():
+        yield async_db_session
+    
+    async def override_get_user():
+        return mock_admin_user
+    
+    async def override_require_user():
+        return mock_admin_user
+    
+    async def override_require_admin():
+        return mock_admin_user
+    
+    api.dependency_overrides[get_async_db] = override_get_db
+    api.dependency_overrides[get_optional_user] = override_get_user
+    api.dependency_overrides[require_user] = override_require_user
+    api.dependency_overrides[require_admin] = override_require_admin
     
     # Mock the config
     with patch('api.CONFIG', mock_config):

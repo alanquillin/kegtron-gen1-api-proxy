@@ -1,23 +1,21 @@
 import logging
-import struct
 from typing import Any
 
 from bleak import BleakClient
 
 import kegtron
-from lib.exceptions import InvalidKegtronAdvertisementData
 
 LOGGER = logging.getLogger("kegtron.gatt")
 
 
-def to_bytearray(val: Any, bytes: int, endian: str = "little") -> bytearray:
+def to_bytearray(val: Any, num_bytes: int, endian: str = "little") -> bytearray:
     if isinstance(val, float):
         LOGGER.debug("rounding and converting float to int.")
         val = int(round(val))
 
     if isinstance(val, int):
         LOGGER.debug("converting the int value %s to bytes", val)
-        b = val.to_bytes(bytes, endian)
+        b = val.to_bytes(num_bytes, endian)
         # b = struct.pack('<H', val)
         LOGGER.debug("converting bytes to byte array: %s", b)
         return bytearray(b)
@@ -29,11 +27,11 @@ async def write_chars(device, data: dict[int, bytearray], response=True):
     mac = device.mac
 
     async with BleakClient(mac) as client:
-        LOGGER.debug(f"connected to Kegtron at {mac}")
+        LOGGER.debug("connected to Kegtron at %s", mac)
         if client.is_connected:
             for k, v in data.items():
                 client.services.get_characteristic(k)
-                LOGGER.debug(f"writing '{v}' to character handle '{k}'")
+                LOGGER.debug("writing '%s' to character handle '%s'", v, k)
                 await client.write_gatt_char(k, v, response=response)
         else:
             LOGGER.warning("failed to connect to device at mac: %s", mac)

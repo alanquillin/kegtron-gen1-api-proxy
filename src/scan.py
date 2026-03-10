@@ -1,30 +1,10 @@
+# pylint: disable=wrong-import-order
 import argparse
 import asyncio
 import copy
 import os
 import sys
 from datetime import datetime, timedelta
-
-from lib import logging
-from lib.config import Config
-from lib.util import dict_to_camel_case
-
-if __name__ == "__main__":
-    # Initialize configuration
-    CONFIG = Config(config_files=["default.json"], env_prefix="KEGTRON_SCANNER")
-    # Initialize logging
-    logging.init(config=CONFIG, fmt=logging.DEFAULT_LOG_FMT)
-else:
-    CONFIG = Config()
-
-BACKEND = CONFIG.get("scanner.backend", "api")
-if BACKEND == "db":
-    from db import AsyncSessionLocal
-    from db.devices import Device
-    from db.ports import Port
-
-LOGGER = logging.getLogger("ble_scanner")
-
 from typing import Any
 
 from bleak import BleakScanner
@@ -33,12 +13,38 @@ from bleak.backends.scanner import AdvertisementData
 from httpx import AsyncClient
 
 from kegtron.parser import parse
+from lib import logging
+from lib.config import Config
 from lib.time import utcnow_aware
+from lib.util import dict_to_camel_case
 
+if __name__ == "__main__":
+    # Initialize configuration
+    CONFIG = Config(config_files=["default.json"], env_prefix="KEGTRON_PROXY")
+    # Initialize logging
+    logging.init(config=CONFIG, fmt=logging.DEFAULT_LOG_FMT)
+else:
+    CONFIG = Config()
+
+LOGGER = logging.getLogger("ble_scanner")
+
+DEFAULT_DISPLAY_UNIT = CONFIG.get("default_display_unit", "gal")
+BACKEND = CONFIG.get("scanner.backend", "api")
+
+service_account_api_key = None
 proxy_url_prefix = None
-
 kegtron_devices = {}
 device_updates = {}
+
+if BACKEND == "api" and CONFIG.get("proxy.enabled"):
+    service_account_api_key = CONFIG.get("scanner.service_account.api_key")
+    if not service_account_api_key:
+        msg = "Scanner is enabled and configured to use the API backend, but the service account API key is not set"
+        LOGGER.error(msg)
+        raise ValueError(msg)
+
+    proxy_url_prefix = f'{CONFIG.get("proxy.scheme")}://{CONFIG.get("proxy.host")}:{CONFIG.get("proxy.port")}/api/v1'
+    LOGGER.info("Scanner is enabled and configured to use the API backend, proxy URL prefix: %s", proxy_url_prefix)
 
 
 def name_to_id(name):
@@ -70,23 +76,30 @@ async def add_new_dev(addr: str, name: str, adv_data: AdvertisementData, parsed_
     }
     if await save_device(data):
         kegtron_devices[addr] = data
-        LOGGER.info(f"Discovered new device: {data})")
+        LOGGER.info("Discovered new device: %s", data)
 
 
 async def _save_device_db(data: dict) -> bool:
+    if BACKEND != "db":
+        LOGGER.error("Database backend not configured")
+        return False
+
+    from db import AsyncSessionLocal
+    from db.devices import Device
+
     device_id = data["id"]
     mac = data["mac"]
 
     device_dict = data.copy()
     device_dict.pop("ports", None)
-    LOGGER.info(f'Saving device to DB: "{device_id}"')
-    LOGGER.debug(f"Device data: {device_dict}")
+    LOGGER.info('Saving device to DB: "%s"', device_id)
+    LOGGER.debug("Device data: %s", device_dict)
     async with AsyncSessionLocal() as db:
         if await Device.exists(device_id, db) or await Device.mac_exists(mac, db):
             return True
         device = await Device.create(db, **device_dict)
 
-        return True if device else False
+        return bool(device)
 
 
 async def _save_device_api(data: dict) -> bool:
@@ -95,20 +108,18 @@ async def _save_device_api(data: dict) -> bool:
         return True
 
     transformed_data = dict_to_camel_case(data)
-    LOGGER.info(f'Saving device to proxy: "{data.get("name")}"')
-    LOGGER.debug(f"Device data: {transformed_data}")
+    LOGGER.info('Saving device to proxy: "%s"', data.get("name"))
+    LOGGER.debug("Device data: %s", transformed_data)
     async with AsyncClient() as client:
-        r = await client.post(f"{proxy_url_prefix}/devices", json=to_json(transformed_data))
+        r = await client.post(f"{proxy_url_prefix}/devices", json=to_json(transformed_data), headers={"Authorization": f"Bearer {service_account_api_key}"})
         if r.status_code != 201:
             if r.status_code == 400 and "The device already exists" in r.text:
                 LOGGER.debug("Device already exists, so we are good!")
                 return True
-            else:
-                LOGGER.error(f"Failed to save new device. Status Code: {r.status_code}, Message: {r.text}")
-                return False
-        else:
-            LOGGER.debug("Device data saved!")
-            return True
+            LOGGER.error("Failed to save new device. Status Code: %s, Message: %s", r.status_code, r.text)
+            return False
+        LOGGER.debug("Device data saved!")
+        return True
 
 
 async def save_device(data: dict) -> bool:
@@ -119,6 +130,14 @@ async def save_device(data: dict) -> bool:
 
 
 async def _update_device_db(data: dict) -> bool:
+    if BACKEND != "db":
+        LOGGER.error("Database backend not configured")
+        return False
+
+    from db import AsyncSessionLocal
+    from db.devices import Device
+    from db.ports import Port
+
     device_id = data["id"]
     async with AsyncSessionLocal() as db:
         device = await Device.get(device_id, db)
@@ -139,6 +158,7 @@ async def _update_device_db(data: dict) -> bool:
                     break
             if not port:
                 port_dict["device_id"] = device_id
+                port_dict["display_unit"] = DEFAULT_DISPLAY_UNIT
                 port = await Port.create(db, autocommit=False, **port_dict)
             else:
                 await port.update(db, autocommit=False, **port_dict)
@@ -159,14 +179,15 @@ async def _update_device_api(data: dict) -> bool:
 
     LOGGER.debug("Transforming data: %s", data)
     transformed_data = dict_to_camel_case(data)
-    LOGGER.debug(f'Updating device "{data.get("name")}" on proxy.  Device data: {transformed_data}')
+    LOGGER.debug('Updating device "%s" on proxy.  Device data: %s', data.get("name"), transformed_data)
     async with AsyncClient() as client:
-        r = await client.put(f'{proxy_url_prefix}/devices/{data.get("id")}', json=to_json(transformed_data))
+        r = await client.put(
+            f'{proxy_url_prefix}/devices/{data.get("id")}', json=to_json(transformed_data), headers={"Authorization": f"Bearer {service_account_api_key}"}
+        )
         if r.status_code != 200:
-            LOGGER.error(f"Failed to update device data. Status Code: {r.status_code}, Message: {r.text}")
+            LOGGER.error("Failed to update device data. Status Code: %s, Message: %s", r.status_code, r.text)
             return False
-        else:
-            return True
+        return True
 
 
 async def update_device(data: dict, port_data: dict, port_data_raw: bytes):
@@ -175,10 +196,10 @@ async def update_device(data: dict, port_data: dict, port_data_raw: bytes):
     force_device_update_after_sec = CONFIG.get("scanner.force_device_update_after_sec")
     now = utcnow_aware()
 
-    if not mac in device_updates.keys():
+    if mac not in device_updates:
         device_updates[mac] = {"ports": {}}
 
-    if not port_index in device_updates[mac]["ports"].keys():
+    if port_index not in device_updates[mac]["ports"]:
         device_updates[mac]["ports"][port_index] = {"updated": now - timedelta(seconds=force_device_update_after_sec + 1), "raw": port_data_raw}
 
     old_port_data_raw = device_updates[mac]["ports"][port_index]["raw"]
@@ -187,14 +208,13 @@ async def update_device(data: dict, port_data: dict, port_data_raw: bytes):
     delta = now - old_port_updated
     if delta.seconds < force_device_update_after_sec:
         if port_data_raw == old_port_data_raw:
-            LOGGER.debug(f'Port data did not change for {data["id"]} on port {port_index} and its still within the force update window, skipping update')
+            LOGGER.debug("Port data did not change for %s on port %s and its still within the force update window, skipping update", data["id"], port_index)
             return
-        else:
-            LOGGER.info(
-                f'Device port data changed for {data["id"]} on port {port_index}.  Updating proxy.  Old data: {old_port_data_raw}, new data: {port_data_raw}'
-            )
+        LOGGER.info(
+            "Device port data changed for %s on port %s.  Updating proxy.  Old data: %s, new data: %s", data["id"], port_index, old_port_data_raw, port_data_raw
+        )
     else:
-        LOGGER.info(f'Update window exceeded for {data["id"]} on port {port_index}, updating the proxy.  Last update: {old_port_updated.isoformat()}')
+        LOGGER.info("Update window exceeded for %s on port %s, updating the proxy.  Last update: %s", data["id"], port_index, old_port_updated.isoformat())
 
     data["last_update_timestamp_utc"] = now
     res = False
@@ -213,11 +233,11 @@ async def update_device(data: dict, port_data: dict, port_data_raw: bytes):
 
 async def proc_kegtron_device(device: BLEDevice, adv_data: AdvertisementData, raw_data: bytes, parsed_data: dict):
     addr = device.address
-    if addr not in kegtron_devices.keys():
+    if addr not in kegtron_devices:
         LOGGER.info("New device detected.  addr: %s, name: %s", addr, device.name)
         await add_new_dev(addr, device.name, adv_data, parsed_data)
 
-    if addr in kegtron_devices.keys():
+    if addr in kegtron_devices:
         kegtron_devices[addr]["rssi"] = adv_data.rssi
         kegtron_devices[addr]["last_advertisement_timestamp_utc"] = utcnow_aware()
 
@@ -277,8 +297,6 @@ if __name__ == "__main__":
 
     CONFIG.set("proxy.enabled", not args.no_proxy)
     app_config = CONFIG
-
-    proxy_url_prefix = f'{CONFIG.get("proxy.scheme")}://{CONFIG.get("proxy.host")}:{CONFIG.get("proxy.port")}/api/v1'
 
     ignore_logging_modules = ["bleson"]
     for i in ignore_logging_modules:

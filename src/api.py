@@ -1,21 +1,46 @@
 import os
+import uuid
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from starlette.middleware.sessions import SessionMiddleware
 
 from lib import logging
 from lib.config import Config
-from routes import devices, ports, public, rpc
+from routes import auth, devices, ports, public, rpc, service_accounts, users
 
 CONFIG = Config()
 LOGGER = logging.getLogger(__name__)
+
+
+_secret_key = CONFIG.get("app.secret_key")
+
+if not _secret_key:
+    if CONFIG.get("ENV") == "production":
+        raise ValueError("app.secret_key must be configured in production")
+
+    _secret_key = str(uuid.uuid4())
+    LOGGER.warning("No 'app.secret_key' configured. Sessions will not persist across restarts. Set 'app.secret_key' in config for production use.")
 
 api = FastAPI(
     title="Kegtron Gen1 API Proxy",
     version="0.1.0",
     docs_url="/api/docs",
     redoc_url="/api/redoc" if CONFIG.get("ENV") == "development" else None,
+)
+
+# Session middleware - must be added before any dependencies use it
+# Disable secure cookies for test environment to allow HTTP
+_env = CONFIG.get("ENV")
+_https_only = False if _env == "test" else CONFIG.get("api.cookies.secure", True)
+api.add_middleware(
+    SessionMiddleware,
+    secret_key=_secret_key,
+    session_cookie="session",
+    max_age=None,  # Session expires when browser closes
+    same_site=CONFIG.get("api.cookies.samesite", "lax"),
+    https_only=_https_only,
 )
 
 # CORS middleware
@@ -51,18 +76,21 @@ DEFAULT_STATIC_DIR = os.path.join(os.getcwd(), "static")
 def get_static_dir() -> str:
     static_dir = CONFIG.get("STATIC_FILES_DIR", DEFAULT_STATIC_DIR)
     LOGGER.debug("Static .html files path: %s", static_dir)
-    
+
     # Create directory if it doesn't exist (for testing)
     if not os.path.exists(static_dir):
         os.makedirs(static_dir, exist_ok=True)
-    
+
     return static_dir
 
 
+api.include_router(auth.router)
 api.include_router(rpc.router_devices)
 api.include_router(rpc.router_ports)
 api.include_router(devices.router)
 api.include_router(ports.router)
 api.include_router(public.router)
+api.include_router(users.router)
+api.include_router(service_accounts.router)
 
 api.mount("/", StaticFiles(directory=get_static_dir(), html=True), name="static")

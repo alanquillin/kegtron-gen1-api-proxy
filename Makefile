@@ -29,17 +29,15 @@ endif
 ifneq ("$(wildcard .env)","")
     include .env
 	export $(shell sed 's/=.*//' .env)
-else
-export KEGTRON_PROXY_CONFIG_BASE_DIR=$(CURDIR)/config
-export KEGTRON_SCANNER_CONFIG_BASE_DIR=$(CURDIR)/config
-export KEGTRON_PROXY_DB_BASE_DIR=$(CURDIR)/data
-export KEGTRON_SCANNER_DB_BASE_DIR=$(CURDIR)/data
-export KEGTRON_PROXY_STATIC_FILES_DIR=$(CURDIR)/src/static
-export KEGTRON_PROXY_ENV=development
 endif
 
+export KEGTRON_PROXY_CONFIG_BASE_DIR=$(CURDIR)/config
+export KEGTRON_PROXY_DB_BASE_DIR=$(CURDIR)/data
+export KEGTRON_PROXY_STATIC_FILES_DIR=$(CURDIR)/src/static
+export KEGTRON_PROXY_ENV=development
 
-.PHONY: depends update-depends run-dev-local run-local lint format create-migration test test-unit test-api test-all test-coverage
+
+.PHONY: depends update-depends run-dev-local run-local lint format create-migration test test-unit test-api test-integration test-coverage
 
 # dependency targets
 
@@ -52,36 +50,42 @@ update-depends:
 
 # Targets for running the app
 
-seed_data: export PYTHONPATH=$(CURDIR)/src:$PYTHONPATH
-seed_data:
+seed-data: export PYTHONPATH=$(CURDIR)/src:$PYTHONPATH
+seed-data:
 	$(PYTHON) data/seed_data.py
 
-run-dev-local: export KEGTRON_PROXY_LOG_LEVEL=DEBUG
-run-dev-local: run-db-migrations seed_data
+run-debug: export KEGTRON_PROXY_LOG_LEVEL=DEBUG
+run-debug: run-db-migrations seed-data
 	$(PYTHON) src/app.py
 
-run-local: run-db-migrations
+run: run-db-migrations
 	$(PYTHON) src/app.py
 
 scan:
 	$(PYTHON) src/scan.py 
 
-scan_dev: export KEGTRON_SCANNER_LOG_LEVEL=DEBUG
-scan-dev:
+scan-debug: export KEGTRON_SCANNER_LOG_LEVEL=DEBUG
+scan-debug:
 	$(PYTHON) src/scan.py
 
 # Testing and Syntax targets
 
-test: test-all
-
-test-all:
-	$(PYTEST) test
+test: test-unit test-api test-integration
 
 test-unit:
 	$(PYTEST) test/unit
 
 test-api:
 	$(PYTEST) test/api
+
+test-integration:
+	$(PYTEST) test/integration -v
+
+test-integration-auth:
+	$(PYTEST) test/integration/test_auth_integration.py -v
+
+test-integration-quick:
+	$(PYTEST) test/integration -x --tb=short
 
 test-coverage:
 	$(PYTEST) test --cov=src --cov-report=term-missing --cov-report=html:htmlcov
@@ -105,3 +109,34 @@ create-migration:
 
 run-db-migrations:
 	$(ALEMBIC) upgrade head
+
+# Help target
+help:
+	@echo "Available make targets:"
+	@echo ""
+	@echo "  Dependencies:"
+	@echo "    depends           - Install project dependencies"
+	@echo "    update-depends    - Update project dependencies"
+	@echo ""
+	@echo "  Running the app:"
+	@echo "    run               - Run the app locally"
+	@echo "    run-debug         - Run the app in development mode with debug logging"
+	@echo "    scan              - Run the scanner"
+	@echo "    scan-debug        - Run the scanner with debug logging"
+	@echo ""
+	@echo "  Testing:"
+	@echo "    test              - Run all tests"
+	@echo "    test-unit         - Run unit tests only"
+	@echo "    test-api          - Run API tests (mocked)"
+	@echo "    test-integration  - Run integration tests against real API server"
+	@echo "    test-coverage     - Run all tests with coverage report"
+	@echo "    test-watch        - Run tests in watch mode"
+	@echo ""
+	@echo "  Code quality:"
+	@echo "    lint              - Run linters (isort, pylint, black)"
+	@echo "    format            - Format code with isort and black"
+	@echo ""
+	@echo "  Database:"
+	@echo "    create-migration  - Create a new database migration"
+	@echo "    run-db-migrations - Run database migrations"
+	@echo "    seed-data         - Seed the database with test data"

@@ -1,13 +1,13 @@
-from typing import Any, Dict, List
+from typing import List
 
-from fastapi import APIRouter, Depends, HTTPException, Request
-from fastapi.responses import JSONResponse
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from db import get_async_db
 from db.devices import Device as deviceDB
 from db.ports import Port as portsDB
+from dependencies.auth import AuthUser, require_user
 from lib import logging
 from lib.config import Config
 from schemas.devices import DeviceCreate, DeviceUpdate
@@ -51,7 +51,11 @@ async def get_devices_int(db: AsyncSession = Depends(get_async_db)) -> List[dict
 
 
 @router.post("", status_code=201)
-async def save_device(device_data: DeviceCreate, db: AsyncSession = Depends(get_async_db)):
+async def save_device(
+    device_data: DeviceCreate,
+    db: AsyncSession = Depends(get_async_db),
+    current_user: AuthUser = Depends(require_user),
+):
     if not device_data.id:
         raise HTTPException(status_code=400, detail="The `id` field is required.")
 
@@ -75,7 +79,13 @@ async def get_device(device_id: str, db: AsyncSession = Depends(get_async_db)) -
     return transform_device(device)
 
 
-async def update_device_ports(device_id: str, ports_dict: dict, ports: list[portsDB], db: AsyncSession, create_on_not_found=False):
+async def update_device_ports(
+    device_id: str,
+    ports_dict: dict,
+    ports: list[portsDB],
+    db: AsyncSession,
+    create_on_not_found: bool = False,
+):
     for idx, port_dict in ports_dict.items():
         idx = int(idx)
         LOGGER.debug("Upserting port with data: %s", port_dict)
@@ -106,7 +116,7 @@ async def update_device_ports(device_id: str, ports_dict: dict, ports: list[port
 
 
 @router.put("/{device_id}")
-async def update_device(device_id: str, device_data: DeviceUpdate, db: AsyncSession = Depends(get_async_db)):
+async def update_device(device_id: str, device_data: DeviceUpdate, db: AsyncSession = Depends(get_async_db), current_user: AuthUser = Depends(require_user)):
     device = await deviceDB.get(device_id, db)
     if not device:
         # Create new device if doesn't exist
@@ -136,27 +146,26 @@ async def update_device(device_id: str, device_data: DeviceUpdate, db: AsyncSess
 
 
 @router.patch("/{device_id}")
-async def update_device(device_id: str, device_data: DeviceUpdate, db: AsyncSession = Depends(get_async_db)):
+async def patch_device(device_id: str, device_data: DeviceUpdate, db: AsyncSession = Depends(get_async_db), current_user: AuthUser = Depends(require_user)):
     device = await deviceDB.get(device_id, db)
     if not device:
         # Create new device if doesn't exist
         raise HTTPException(status_code=404, detail=f"Device with id {device_id} not found")
-    else:
-        # Update existing device
-        device_dict = device_data.model_dump(exclude_unset=True)
-        LOGGER.debug("Updating device with data: %s", device_dict)
-        ports_dict = device_dict.pop("ports", None)
 
-        ports = None
-        if ports_dict:
-            ports = await portsDB.query(db, device_id=device_id)
+    device_dict = device_data.model_dump(exclude_unset=True)
+    LOGGER.debug("Updating device with data: %s", device_dict)
+    ports_dict = device_dict.pop("ports", None)
 
-        await device.update(db, autocommit=False, **device_dict)
-        if ports_dict:
-            await update_device_ports(device_id, ports_dict, ports, db)
-        try:
-            await db.commit()
-        except Exception:
-            await db.rollback()
-            raise
+    ports = None
+    if ports_dict:
+        ports = await portsDB.query(db, device_id=device_id)
+
+    await device.update(db, autocommit=False, **device_dict)
+    if ports_dict:
+        await update_device_ports(device_id, ports_dict, ports, db)
+    try:
+        await db.commit()
+    except Exception:
+        await db.rollback()
+        raise
     return {"updated": True}

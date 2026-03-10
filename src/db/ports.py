@@ -4,6 +4,7 @@ from dateutil.parser import parse as parse_datetime
 from sqlalchemy import JSON, Boolean, Column, DateTime, Float, ForeignKey, Integer, String
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import relationship
+from sqlalchemy.schema import Index
 from sqlalchemy.sql import func
 
 from db import Base, CRUDMixin, DictifiableMixin
@@ -29,10 +30,15 @@ class Port(Base, CRUDMixin, DictifiableMixin):
     configured = Column(Boolean, nullable=True)
     data = Column(JSON, nullable=True)  # Store any additional port data as JSON
     last_update_timestamp_utc = Column(DateTime(timezone=True), nullable=True)
-    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())  # pylint: disable=not-callable
 
     # Relationship back to device
     device = relationship("Device", back_populates="ports")
+
+    __table_args__ = (
+        Index("ix_ports_device_id", device_id, unique=False),
+        Index("ix_ports_device_id_port_index", device_id, port_index, unique=True),
+    )
 
     def to_dict(self, *args, **kwargs) -> Dict[str, Any]:
         return super().to_dict(*args, ignore_properties=["data"], **kwargs)
@@ -46,8 +52,6 @@ class Port(Base, CRUDMixin, DictifiableMixin):
 
     @classmethod
     async def create(cls, db: AsyncSession, autocommit=True, **kwargs):
-        # TODO override create method to check conditions:
-        # - Device_id + port_index - must be unique
         if "last_update_timestamp_utc" in kwargs:
             timestamp = kwargs["last_update_timestamp_utc"]
             if isinstance(timestamp, str):
@@ -55,8 +59,6 @@ class Port(Base, CRUDMixin, DictifiableMixin):
         return await super().create(db, autocommit=autocommit, **kwargs)
 
     async def update(self, db: AsyncSession, autocommit=True, **kwargs):
-        # TODO override create method to check conditions:
-        # - Device_id + port_index - must be unique
         if "last_update_timestamp_utc" in kwargs:
             timestamp = kwargs["last_update_timestamp_utc"]
             if isinstance(timestamp, str):

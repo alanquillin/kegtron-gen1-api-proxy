@@ -1,6 +1,6 @@
-from typing import Any, Dict
+from typing import Dict
 
-from pydantic import BaseModel, Field
+from pydantic import Field
 
 from schemas import CamelCaseModel
 from schemas.ports import PortUpdateFromDevice

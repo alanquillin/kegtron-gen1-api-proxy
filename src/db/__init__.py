@@ -10,11 +10,7 @@ from sqlalchemy.orm import ColumnProperty, sessionmaker
 from lib import logging
 from lib.config import Config
 
-__all__ = [
-    "Base",
-    "devices",
-    "ports",
-]
+__all__ = ["Base", "devices", "ports", "users", "service_accounts"]
 
 CONFIG = Config()
 LOGGER = logging.getLogger(__name__)
@@ -22,6 +18,12 @@ LOGGER = logging.getLogger(__name__)
 
 # Database URL
 def get_db_file_path() -> str:
+    # Check for test database path override
+    test_db_path = os.environ.get("TEST_DATABASE_PATH")
+    if test_db_path:
+        LOGGER.debug("Using test DB file path: %s", test_db_path)
+        return test_db_path
+
     path = CONFIG.get("db.path")
     base_dir = CONFIG.get("db.base_dir")
     if base_dir:
@@ -70,7 +72,7 @@ class CRUDMixin:
 
     @classmethod
     async def count_all(cls: Type[T], db: AsyncSession):
-        count_statement = select(func.count()).select_from(cls)
+        count_statement = select(func.count()).select_from(cls)  # pylint: disable=not-callable
         result = await db.execute(count_statement)
         return result.scalar_one()
 
@@ -80,7 +82,7 @@ class CRUDMixin:
         return result.scalars().all()
 
     @classmethod
-    async def get(cls: Type[T], id: Any, db: AsyncSession, options: list = None) -> Optional[T]:
+    async def get(cls: Type[T], id: Any, db: AsyncSession, options: list = None) -> Optional[T]:  # pylint: disable=redefined-builtin
         """Get a single record by ID (async)"""
         query = select(cls).where(cls.id == id)
         if options:
@@ -152,7 +154,7 @@ class CRUDMixin:
         return True
 
     @classmethod
-    async def exists(cls: Type[T], id: Any, db: AsyncSession) -> bool:
+    async def exists(cls: Type[T], id: Any, db: AsyncSession) -> bool:  # pylint: disable=redefined-builtin
         """Check if a record exists by ID (async)"""
         result = await db.execute(select(cls.id).where(cls.id == id))
         return result.scalar_one_or_none() is not None
