@@ -29,14 +29,14 @@ endif
 ifneq ("$(wildcard .env)","")
     include .env
 	export $(shell sed 's/=.*//' .env)
-else
+endif
+
 export KEGTRON_PROXY_CONFIG_BASE_DIR=$(CURDIR)/config
 export KEGTRON_SCANNER_CONFIG_BASE_DIR=$(CURDIR)/config
 export KEGTRON_PROXY_DB_BASE_DIR=$(CURDIR)/data
 export KEGTRON_SCANNER_DB_BASE_DIR=$(CURDIR)/data
 export KEGTRON_PROXY_STATIC_FILES_DIR=$(CURDIR)/src/static
 export KEGTRON_PROXY_ENV=development
-endif
 
 
 .PHONY: depends update-depends run-dev-local run-local lint format create-migration test test-unit test-api test-integration test-coverage
@@ -56,18 +56,18 @@ seed_data: export PYTHONPATH=$(CURDIR)/src:$PYTHONPATH
 seed_data:
 	$(PYTHON) data/seed_data.py
 
-run-dev-local: export KEGTRON_PROXY_LOG_LEVEL=DEBUG
-run-dev-local: run-db-migrations seed_data
+run-debug: export KEGTRON_PROXY_LOG_LEVEL=DEBUG
+run-debug: run-db-migrations seed_data
 	$(PYTHON) src/app.py
 
-run-local: run-db-migrations
+run: run-db-migrations
 	$(PYTHON) src/app.py
 
 scan:
 	$(PYTHON) src/scan.py 
 
-scan_dev: export KEGTRON_SCANNER_LOG_LEVEL=DEBUG
-scan-dev:
+scan_debug: export KEGTRON_SCANNER_LOG_LEVEL=DEBUG
+scan-debug:
 	$(PYTHON) src/scan.py
 
 # Testing and Syntax targets
@@ -117,31 +117,28 @@ help:
 	@echo "Available make targets:"
 	@echo ""
 	@echo "  Dependencies:"
-	@echo "    depends          - Install project dependencies"
-	@echo "    update-depends   - Update project dependencies"
+	@echo "    depends           - Install project dependencies"
+	@echo "    update-depends    - Update project dependencies"
 	@echo ""
 	@echo "  Running the app:"
-	@echo "    run-local        - Run the app locally"
-	@echo "    run-dev-local    - Run the app in development mode with debug logging"
-	@echo "    scan             - Run the scanner"
-	@echo "    scan-dev         - Run the scanner with debug logging"
+	@echo "    run               - Run the app locally"
+	@echo "    run-debug         - Run the app in development mode with debug logging"
+	@echo "    scan              - Run the scanner"
+	@echo "    scan-debug        - Run the scanner with debug logging"
 	@echo ""
 	@echo "  Testing:"
-	@echo "    test             - Run all tests (alias for test-all)"
-	@echo "    test-all         - Run all tests"
-	@echo "    test-unit        - Run unit tests only"
-	@echo "    test-api         - Run API tests (mocked)"
-	@echo "    test-integration - Run integration tests against real API server"
-	@echo "    test-integration-auth - Run auth integration tests only"
-	@echo "    test-integration-quick - Run integration tests, stop on first failure"
-	@echo "    test-coverage    - Run all tests with coverage report"
-	@echo "    test-watch       - Run tests in watch mode"
+	@echo "    test              - Run all tests"
+	@echo "    test-unit         - Run unit tests only"
+	@echo "    test-api          - Run API tests (mocked)"
+	@echo "    test-integration  - Run integration tests against real API server"
+	@echo "    test-coverage     - Run all tests with coverage report"
+	@echo "    test-watch        - Run tests in watch mode"
 	@echo ""
 	@echo "  Code quality:"
-	@echo "    lint             - Run linters (isort, pylint, black)"
-	@echo "    format           - Format code with isort and black"
+	@echo "    lint              - Run linters (isort, pylint, black)"
+	@echo "    format            - Format code with isort and black"
 	@echo ""
 	@echo "  Database:"
-	@echo "    create-migration - Create a new database migration"
+	@echo "    create-migration  - Create a new database migration"
 	@echo "    run-db-migrations - Run database migrations"
-	@echo "    seed_data        - Seed the database with test data"
+	@echo "    seed_data         - Seed the database with test data"
