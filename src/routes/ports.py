@@ -1,12 +1,8 @@
-from typing import Any, Dict, List
-
-from fastapi import APIRouter, Depends, HTTPException, Request
-from fastapi.responses import JSONResponse
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from db import get_async_db
 from db.ports import Port
-from db.ports import Port as portsDB
 from dependencies.auth import AuthUser, require_user
 from lib import logging
 from lib.config import Config

@@ -1,11 +1,9 @@
 import logging
-import struct
 from typing import Any
 
 from bleak import BleakClient
 
 import kegtron
-from lib.exceptions import InvalidKegtronAdvertisementData
 
 LOGGER = logging.getLogger("kegtron.gatt")
 

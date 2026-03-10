@@ -1,9 +1,4 @@
-import struct
-from typing import Any, Optional
-
-from fastapi import APIRouter, Depends, HTTPException, Request
-from fastapi.responses import JSONResponse
-from pydantic import BaseModel, Field
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 import kegtron
@@ -99,13 +94,13 @@ async def reset_volume_rpc(
         updates["start_volume"] = start_volume_ml
         u_data[volume_key] = gatt.to_bytearray(start_volume_ml, 2)
 
-    LOGGER.debug(f"attempting to write data to device: {u_data}")
+    LOGGER.debug("attempting to write data to device: %s", u_data)
     await gatt.unlock(device, port_index)
-    LOGGER.debug(f"attempting to write data to device {device_id}, data: {u_data}")
+    LOGGER.debug("attempting to write data to device %s, data: %s", device_id, u_data)
     await gatt.write_chars(device, u_data)
-    LOGGER.debug(f"done writing to device {device_id}")
+    LOGGER.debug("done writing to device %s", device_id)
 
-    LOGGER.debug(f"Updating port DB data on device {device_id} on port {port_index}, data: {updates}")
+    LOGGER.debug("Updating port DB data on device %s on port %s, data: %s", device_id, port_index, updates)
     await port.update(db, **updates)
 
     return {"success": True}

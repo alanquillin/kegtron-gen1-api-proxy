@@ -1,8 +1,5 @@
 import logging
-from datetime import datetime, timezone
 from struct import unpack
-
-from bleak import BleakClient, BleakScanner
 
 from lib.exceptions import InvalidKegtronAdvertisementData
 from lib.time import utcnow_aware

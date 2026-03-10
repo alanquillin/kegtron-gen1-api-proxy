@@ -1,7 +1,6 @@
-from typing import Any, Dict, List
+from typing import List
 
-from fastapi import APIRouter, Depends, HTTPException, Request
-from fastapi.responses import JSONResponse
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -144,27 +143,26 @@ async def update_device(device_id: str, device_data: DeviceUpdate, db: AsyncSess
 
 
 @router.patch("/{device_id}")
-async def update_device(device_id: str, device_data: DeviceUpdate, db: AsyncSession = Depends(get_async_db), current_user: AuthUser = Depends(require_user)):
+async def patch_device(device_id: str, device_data: DeviceUpdate, db: AsyncSession = Depends(get_async_db), current_user: AuthUser = Depends(require_user)):
     device = await deviceDB.get(device_id, db)
     if not device:
         # Create new device if doesn't exist
         raise HTTPException(status_code=404, detail=f"Device with id {device_id} not found")
-    else:
-        # Update existing device
-        device_dict = device_data.model_dump(exclude_unset=True)
-        LOGGER.debug("Updating device with data: %s", device_dict)
-        ports_dict = device_dict.pop("ports", None)
 
-        ports = None
-        if ports_dict:
-            ports = await portsDB.query(db, device_id=device_id)
+    device_dict = device_data.model_dump(exclude_unset=True)
+    LOGGER.debug("Updating device with data: %s", device_dict)
+    ports_dict = device_dict.pop("ports", None)
 
-        await device.update(db, autocommit=False, **device_dict)
-        if ports_dict:
-            await update_device_ports(device_id, ports_dict, ports, db)
-        try:
-            await db.commit()
-        except Exception:
-            await db.rollback()
-            raise
+    ports = None
+    if ports_dict:
+        ports = await portsDB.query(db, device_id=device_id)
+
+    await device.update(db, autocommit=False, **device_dict)
+    if ports_dict:
+        await update_device_ports(device_id, ports_dict, ports, db)
+    try:
+        await db.commit()
+    except Exception:
+        await db.rollback()
+        raise
     return {"updated": True}

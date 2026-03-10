@@ -1,6 +1,5 @@
 # pylint: disable=wrong-import-position
-from argon2 import PasswordHasher
-from sqlalchemy import Boolean, Column, Integer, String
+from sqlalchemy import Column, Integer, String
 from sqlalchemy.schema import Index
 from sqlalchemy.sql import func
 
