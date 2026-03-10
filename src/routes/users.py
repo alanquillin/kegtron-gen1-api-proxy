@@ -104,7 +104,7 @@ async def update_user(
                 try:
                     ph.verify(user.password_hash, data["current_password"])
                 except VerifyMismatchError:
-                    raise HTTPException(status_code=401, detail="Current password is incorrect")
+                    raise HTTPException(status_code=401, detail="Current password is incorrect")  # pylint: disable=raise-missing-from
 
         # Hash the new password
         ph = PasswordHasher()

@@ -28,13 +28,13 @@ def parse_scan(data):
     mfg_data = data[0:31]
     LOG.debug("Parsing Kegtron Scan Response Data")
 
-    (ttl_len, type, cic, keg_vol, vol_start, vol_disp, port, port_name) = unpack(">BBHHHHB20s", mfg_data)
+    (ttl_len, type_byte, cic, keg_vol, vol_start, vol_disp, port, port_name) = unpack(">BBHHHHB20s", mfg_data)
 
     if ttl_len != 0x1E:
         raise InvalidKegtronAdvertisementData(message=f"Total Length should be 0x1E (30), but received {ttl_len}")
 
-    if type != 0xFF:
-        raise InvalidKegtronAdvertisementData(message=f"Type byte should be 0xFF (255), but received {type}")
+    if type_byte != 0xFF:
+        raise InvalidKegtronAdvertisementData(message=f"Type byte should be 0xFF (255), but received {type_byte}")
 
     if cic != 0xFFFF:
         raise InvalidKegtronAdvertisementData(message=f"Company Identifier Code (CIC) should be 0xFFFF (65535), but received {cic}")
@@ -51,10 +51,7 @@ def parse_scan(data):
         port_index = 0
         port_cnt = 1
 
-    if port & (1 << 0):
-        port_configured = True
-    else:
-        port_configured = False
+    port_configured = bool(port & (1 << 0))
 
     port_data = {
         "keg_size": keg_vol,
@@ -65,7 +62,7 @@ def parse_scan(data):
         "configured": port_configured,
         "port_index": port_index,
     }
-    LOG.debug(f"Parsed data: model: {model}, port count: {port_cnt}, port: {port_data}")
+    LOG.debug("Parsed data: model: %s, port count: %s, port: %s", model, port_cnt, port_data)
 
     return {"model": model, "port_cnt": port_cnt, "port_data": port_data}
 
@@ -87,10 +84,7 @@ def parse_scan_short(mfg_data):
         port_index = 0
         port_cnt = 1
 
-    if port & (1 << 0):
-        port_configured = True
-    else:
-        port_configured = False
+    port_configured = bool(port & (1 << 0))
 
     port_data = {
         "keg_size": keg_vol,
@@ -101,6 +95,6 @@ def parse_scan_short(mfg_data):
         "configured": port_configured,
         "port_index": port_index,
     }
-    LOG.debug(f"Parsed data: model: {model}, port count: {port_cnt}, port: {port_data}")
+    LOG.debug("Parsed data: model: %s, port count: %s, port: %s", model, port_cnt, port_data)
 
     return {"model": model, "port_cnt": port_cnt, "port_data": port_data}

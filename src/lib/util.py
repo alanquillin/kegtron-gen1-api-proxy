@@ -51,7 +51,7 @@ def flatten_dict(data: dict, parent_name: str = "", sep: str = ".", key_converte
 
     """
     if not skip_key_check:
-        skip_key_check = lambda *_: False
+        skip_key_check = lambda *_: False  # pylint: disable=unnecessary-lambda-assignment
 
     flattened = {}
 
@@ -112,7 +112,7 @@ def dict_to_camel_case(data: Union[Dict, List, Any], skip_none: bool = True) -> 
         transformed = {}
         for key, val in data.items():
             # Skip None values
-            if val is None and skip_none == True:
+            if val is None and skip_none is True:
                 continue
 
             # Convert key to camelCase
@@ -128,8 +128,7 @@ def dict_to_camel_case(data: Union[Dict, List, Any], skip_none: bool = True) -> 
 
         return transformed
 
-    elif isinstance(data, list):
+    if isinstance(data, list):
         return [dict_to_camel_case(item) if isinstance(item, (dict, list)) else item for item in data]
 
-    else:
-        return data
+    return data

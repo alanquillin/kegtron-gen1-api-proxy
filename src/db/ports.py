@@ -30,7 +30,7 @@ class Port(Base, CRUDMixin, DictifiableMixin):
     configured = Column(Boolean, nullable=True)
     data = Column(JSON, nullable=True)  # Store any additional port data as JSON
     last_update_timestamp_utc = Column(DateTime(timezone=True), nullable=True)
-    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())  # pylint: disable=not-callable
 
     # Relationship back to device
     device = relationship("Device", back_populates="ports")

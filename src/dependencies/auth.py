@@ -93,11 +93,11 @@ async def get_current_user_from_api_key(
         if user:
             LOGGER.debug("Authenticated user via API key: %s", user.email)
             return await AuthUser.from_user(user)
-        else:
-            user = await ServiceAccountDB.get_by_api_key(db, api_key)
-            if user:
-                LOGGER.debug("Authenticated service account via API key: %s", user.api_key)
-                return await AuthUser.from_service_account(user)
+
+        user = await ServiceAccountDB.get_by_api_key(db, api_key)
+        if user:
+            LOGGER.debug("Authenticated service account via API key: %s", user.api_key)
+            return await AuthUser.from_service_account(user)
 
     return None
 

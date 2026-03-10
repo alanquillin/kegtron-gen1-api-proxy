@@ -72,7 +72,7 @@ class CRUDMixin:
 
     @classmethod
     async def count_all(cls: Type[T], db: AsyncSession):
-        count_statement = select(func.count()).select_from(cls)
+        count_statement = select(func.count()).select_from(cls)  # pylint: disable=not-callable
         result = await db.execute(count_statement)
         return result.scalar_one()
 
@@ -82,7 +82,7 @@ class CRUDMixin:
         return result.scalars().all()
 
     @classmethod
-    async def get(cls: Type[T], id: Any, db: AsyncSession, options: list = None) -> Optional[T]:
+    async def get(cls: Type[T], id: Any, db: AsyncSession, options: list = None) -> Optional[T]:  # pylint: disable=redefined-builtin
         """Get a single record by ID (async)"""
         query = select(cls).where(cls.id == id)
         if options:
@@ -154,7 +154,7 @@ class CRUDMixin:
         return True
 
     @classmethod
-    async def exists(cls: Type[T], id: Any, db: AsyncSession) -> bool:
+    async def exists(cls: Type[T], id: Any, db: AsyncSession) -> bool:  # pylint: disable=redefined-builtin
         """Check if a record exists by ID (async)"""
         result = await db.execute(select(cls.id).where(cls.id == id))
         return result.scalar_one_or_none() is not None

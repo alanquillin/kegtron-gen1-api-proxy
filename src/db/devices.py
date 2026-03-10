@@ -25,8 +25,8 @@ class Device(Base, CRUDMixin, DictifiableMixin):
     port_cnt = Column(Integer, nullable=True)
     rssi = Column(Integer, nullable=True)
     last_advertisement_timestamp_utc = Column(DateTime(timezone=True), nullable=True)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    created_at = Column(DateTime(timezone=True), server_default=func.now())  # pylint: disable=not-callable
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())  # pylint: disable=not-callable
 
     # Relationship to ports
     ports = relationship("Port", back_populates="device", cascade="all, delete-orphan")

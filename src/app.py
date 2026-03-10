@@ -1,3 +1,4 @@
+# pylint: disable=wrong-import-order
 # Initialize configuration *NEEDS TO BE DONE BEFORE ALL OTHER IMPORTS*
 from lib.config import Config
 
@@ -9,8 +10,6 @@ from lib import logging
 logging.init(config=CONFIG, fmt=logging.DEFAULT_LOG_FMT)
 LOGGER = logging.getLogger(__name__)
 
-
-LOGGER.debug(CONFIG.data_flat)
 
 import argparse
 import asyncio

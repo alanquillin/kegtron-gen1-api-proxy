@@ -3,8 +3,6 @@ Authentication router for FastAPI.
 Handles login, logout, and Google OAuth flows.
 """
 
-import asyncio
-
 from argon2 import PasswordHasher
 from argon2.exceptions import VerifyMismatchError
 from fastapi import APIRouter, Depends, HTTPException, Request, status

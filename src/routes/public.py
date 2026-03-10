@@ -40,7 +40,7 @@ async def scanner_status():
 
             status["checked_at"] = utcnow_aware().isoformat()
             return status
-        
+
         return {"status": "not_initialized", "message": "Application instance not available", "checked_at": utcnow_aware().isoformat()}
     except ImportError:
         return {"status": "unknown", "message": "Running without scanner module", "checked_at": utcnow_aware().isoformat()}
