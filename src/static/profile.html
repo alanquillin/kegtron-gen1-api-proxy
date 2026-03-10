@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kegtron Gen1 - Profile</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .navbar {
+            background: rgba(255, 255, 255, 0.98);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            padding: 15px 0;
+        }
+
+        .navbar-brand {
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .nav-link {
+            color: #6c757d;
+            margin: 0 10px;
+            transition: color 0.2s;
+        }
+
+        .nav-link:hover {
+            color: #667eea;
+        }
+
+        .profile-container {
+            margin-top: 30px;
+            padding: 0 15px;
+        }
+
+        .profile-card {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+            margin-bottom: 30px;
+            overflow: hidden;
+        }
+
+        .profile-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 30px;
+            text-align: center;
+            color: white;
+        }
+
+        .profile-header h2 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        .profile-header p {
+            margin: 10px 0 0;
+            opacity: 0.9;
+        }
+
+        .profile-body {
+            padding: 30px;
+        }
+
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            color: #6c757d;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+
+        .form-control {
+            border-radius: 10px;
+            border: 1px solid #dee2e6;
+            padding: 10px 15px;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .form-control:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 10px;
+            padding: 10px 25px;
+            font-weight: 600;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 7px 14px rgba(50,50,93,.1), 0 3px 6px rgba(0,0,0,.08);
+            background: linear-gradient(135deg, #5a6fd6 0%, #6a428e 100%);
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            border: none;
+            border-radius: 10px;
+            padding: 10px 25px;
+            font-weight: 600;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .btn-danger:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 7px 14px rgba(220,53,69,.2), 0 3px 6px rgba(0,0,0,.08);
+            background: #c82333;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            border: none;
+            border-radius: 10px;
+            padding: 10px 25px;
+            font-weight: 600;
+        }
+
+        .alert {
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .alert.show {
+            display: block;
+        }
+
+        .api-key-section {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+
+        .api-key-display {
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 10px 15px;
+            font-family: 'Courier New', monospace;
+            word-break: break-all;
+            margin: 10px 0;
+        }
+
+        .api-key-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .password-toggle {
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            cursor: pointer;
+            color: #6c757d;
+            z-index: 10;
+        }
+
+        .password-field-wrapper {
+            position: relative;
+        }
+
+        .spinner-border {
+            width: 1.5rem;
+            height: 1.5rem;
+            margin-right: 8px;
+        }
+
+        .text-muted {
+            color: #6c757d !important;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg">
+        <div class="container">
+            <a class="navbar-brand" href="/">Kegtron Gen1</a>
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link" href="/">Dashboard</a>
+                <a class="nav-link" href="/config.html">Config</a>
+                <a class="nav-link active" href="/profile.html">Profile</a>
+                <a class="nav-link" href="#" onclick="logout()">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container profile-container">
+        <!-- Profile Information Card -->
+        <div class="profile-card">
+            <div class="profile-header">
+                <h2>My Profile</h2>
+                <p id="userEmail">Loading...</p>
+            </div>
+            <div class="profile-body">
+                <!-- Alert Messages -->
+                <div id="profileAlert" class="alert" role="alert">
+                    <span id="profileAlertMessage"></span>
+                </div>
+
+                <!-- Personal Information Section -->
+                <div class="section-title">Personal Information</div>
+                <form id="personalInfoForm">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="firstName" class="form-label">First Name</label>
+                                <input type="text" class="form-control" id="firstName" placeholder="Enter first name">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="lastName" class="form-label">Last Name</label>
+                                <input type="text" class="form-control" id="lastName" placeholder="Enter last name">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="email" class="form-label">Email Address</label>
+                        <input type="email" class="form-control" id="email" placeholder="Enter email">
+                    </div>
+                    <button type="submit" class="btn btn-primary">Update Profile</button>
+                </form>
+
+                <!-- Change Password Section -->
+                <div class="section-title mt-5">Change Password</div>
+                <form id="changePasswordForm">
+                    <div class="form-group">
+                        <label for="currentPassword" class="form-label">Current Password</label>
+                        <div class="password-field-wrapper">
+                            <input type="password" class="form-control" id="currentPassword" placeholder="Enter current password">
+                            <span class="material-icons password-toggle" onclick="togglePassword('currentPassword')">visibility_off</span>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="newPassword" class="form-label">New Password</label>
+                        <div class="password-field-wrapper">
+                            <input type="password" class="form-control" id="newPassword" placeholder="Enter new password">
+                            <span class="material-icons password-toggle" onclick="togglePassword('newPassword')">visibility_off</span>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="confirmPassword" class="form-label">Confirm New Password</label>
+                        <div class="password-field-wrapper">
+                            <input type="password" class="form-control" id="confirmPassword" placeholder="Confirm new password">
+                            <span class="material-icons password-toggle" onclick="togglePassword('confirmPassword')">visibility_off</span>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Change Password</button>
+                </form>
+
+                <!-- API Key Management Section -->
+                <div class="section-title mt-5">API Key Management</div>
+                <div class="api-key-section">
+                    <p class="text-muted">Your API key can be used to authenticate with the Kegtron API programmatically.</p>
+                    <div id="apiKeyDisplay" class="api-key-display" style="display: none;">
+                        <span id="apiKeyValue">No API key generated</span>
+                    </div>
+                    <div class="api-key-actions">
+                        <button id="showApiKeyBtn" class="btn btn-secondary" onclick="toggleApiKey()">Show API Key</button>
+                        <button id="generateApiKeyBtn" class="btn btn-primary" onclick="generateApiKey()">Generate New Key</button>
+                        <button id="deleteApiKeyBtn" class="btn btn-danger" onclick="deleteApiKey()" style="display: none;">Delete Key</button>
+                    </div>
+                    <p class="text-muted mt-3">
+                        <small><strong>Warning:</strong> Generating a new API key will invalidate the previous key.</small>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script>
+        let currentUserId = null;
+        let currentUserData = null;
+
+        // Check authentication on page load
+        $(document).ready(function() {
+            checkAuthAndLoadProfile();
+        });
+
+        function checkAuthAndLoadProfile() {
+            $.ajax({
+                url: '/api/v1/users/current',
+                method: 'GET',
+                success: function(userData) {
+                    currentUserData = userData;
+                    currentUserId = userData.id;
+                    populateProfile(userData);
+                },
+                error: function(xhr) {
+                    // Not authenticated, redirect to login
+                    window.location.href = '/login.html?redirect=' + encodeURIComponent(window.location.pathname);
+                }
+            });
+        }
+
+        function populateProfile(userData) {
+            $('#userEmail').text(userData.email || 'No email set');
+            $('#firstName').val(userData.firstName || '');
+            $('#lastName').val(userData.lastName || '');
+            $('#email').val(userData.email || '');
+        }
+
+        function showAlert(message, type = 'success') {
+            const alertDiv = $('#profileAlert');
+            alertDiv.removeClass('alert-success alert-danger alert-warning');
+            alertDiv.addClass(`alert-${type}`);
+            $('#profileAlertMessage').text(message);
+            alertDiv.addClass('show');
+            
+            setTimeout(() => {
+                alertDiv.removeClass('show');
+            }, 5000);
+        }
+
+        function togglePassword(fieldId) {
+            const field = document.getElementById(fieldId);
+            const icon = event.target;
+            
+            if (field.type === 'password') {
+                field.type = 'text';
+                icon.textContent = 'visibility';
+            } else {
+                field.type = 'password';
+                icon.textContent = 'visibility_off';
+            }
+        }
+
+        // Handle personal info update
+        $('#personalInfoForm').on('submit', function(e) {
+            e.preventDefault();
+            
+            const updateData = {
+                firstName: $('#firstName').val() || null,
+                lastName: $('#lastName').val() || null,
+                email: $('#email').val() || null
+            };
+
+            $.ajax({
+                url: `/api/v1/users/${currentUserId}`,
+                method: 'PATCH',
+                contentType: 'application/json',
+                data: JSON.stringify(updateData),
+                success: function(response) {
+                    currentUserData = response;
+                    populateProfile(response);
+                    showAlert('Profile updated successfully!', 'success');
+                },
+                error: function(xhr) {
+                    let errorMessage = 'Failed to update profile.';
+                    if (xhr.responseJSON && xhr.responseJSON.detail) {
+                        errorMessage = xhr.responseJSON.detail;
+                    }
+                    showAlert(errorMessage, 'danger');
+                }
+            });
+        });
+
+        // Handle password change
+        $('#changePasswordForm').on('submit', function(e) {
+            e.preventDefault();
+            
+            const currentPassword = $('#currentPassword').val();
+            const newPassword = $('#newPassword').val();
+            const confirmPassword = $('#confirmPassword').val();
+
+            if (!currentPassword || !newPassword || !confirmPassword) {
+                showAlert('Please fill in all password fields.', 'warning');
+                return;
+            }
+
+            if (newPassword !== confirmPassword) {
+                showAlert('New password and confirmation do not match.', 'danger');
+                return;
+            }
+
+            if (newPassword.length < 8) {
+                showAlert('New password must be at least 8 characters long.', 'warning');
+                return;
+            }
+
+            const updateData = {
+                password: newPassword,
+                currentPassword: currentPassword
+            };
+
+            $.ajax({
+                url: `/api/v1/users/${currentUserId}`,
+                method: 'PATCH',
+                contentType: 'application/json',
+                data: JSON.stringify(updateData),
+                success: function() {
+                    $('#changePasswordForm')[0].reset();
+                    showAlert('Password changed successfully!', 'success');
+                },
+                error: function(xhr) {
+                    let errorMessage = 'Failed to change password.';
+                    if (xhr.responseJSON && xhr.responseJSON.detail) {
+                        errorMessage = xhr.responseJSON.detail;
+                    }
+                    showAlert(errorMessage, 'danger');
+                }
+            });
+        });
+
+        // API Key Management
+        function toggleApiKey() {
+            const display = $('#apiKeyDisplay');
+            const btn = $('#showApiKeyBtn');
+            
+            if (display.is(':visible')) {
+                display.hide();
+                btn.text('Show API Key');
+            } else {
+                loadApiKey();
+            }
+        }
+
+        function loadApiKey() {
+            $.ajax({
+                url: `/api/v1/users/${currentUserId}/api_key`,
+                method: 'GET',
+                success: function(response) {
+                    if (response.apiKey) {
+                        $('#apiKeyValue').text(response.apiKey);
+                        $('#deleteApiKeyBtn').show();
+                    } else {
+                        $('#apiKeyValue').text('No API key generated');
+                        $('#deleteApiKeyBtn').hide();
+                    }
+                    $('#apiKeyDisplay').show();
+                    $('#showApiKeyBtn').text('Hide API Key');
+                },
+                error: function(xhr) {
+                    showAlert('Failed to load API key.', 'danger');
+                }
+            });
+        }
+
+        function generateApiKey() {
+            if (!confirm('Generating a new API key will invalidate your current key. Continue?')) {
+                return;
+            }
+
+            $.ajax({
+                url: `/api/v1/users/${currentUserId}/api_key/generate`,
+                method: 'POST',
+                success: function(response) {
+                    $('#apiKeyValue').text(response.apiKey);
+                    $('#apiKeyDisplay').show();
+                    $('#showApiKeyBtn').text('Hide API Key');
+                    $('#deleteApiKeyBtn').show();
+                    showAlert('New API key generated successfully!', 'success');
+                },
+                error: function(xhr) {
+                    let errorMessage = 'Failed to generate API key.';
+                    if (xhr.responseJSON && xhr.responseJSON.detail) {
+                        errorMessage = xhr.responseJSON.detail;
+                    }
+                    showAlert(errorMessage, 'danger');
+                }
+            });
+        }
+
+        function deleteApiKey() {
+            if (!confirm('Are you sure you want to delete your API key? This action cannot be undone.')) {
+                return;
+            }
+
+            $.ajax({
+                url: `/api/v1/users/${currentUserId}/api_key`,
+                method: 'DELETE',
+                success: function() {
+                    $('#apiKeyValue').text('No API key generated');
+                    $('#deleteApiKeyBtn').hide();
+                    showAlert('API key deleted successfully.', 'success');
+                },
+                error: function(xhr) {
+                    let errorMessage = 'Failed to delete API key.';
+                    if (xhr.responseJSON && xhr.responseJSON.detail) {
+                        errorMessage = xhr.responseJSON.detail;
+                    }
+                    showAlert(errorMessage, 'danger');
+                }
+            });
+        }
+
+        function logout() {
+            $.ajax({
+                url: '/logout',
+                method: 'GET',
+                success: function() {
+                    window.location.href = '/login.html';
+                },
+                error: function() {
+                    // Clear session storage and redirect anyway
+                    sessionStorage.clear();
+                    window.location.href = '/login.html';
+                }
+            });
+        }
+
+        // Add API key to all AJAX requests if stored (for API key auth)
+        $.ajaxSetup({
+            beforeSend: function(xhr) {
+                const apiKey = sessionStorage.getItem('apiKey');
+                if (apiKey) {
+                    xhr.setRequestHeader('Authorization', `Bearer ${apiKey}`);
+                }
+            }
+        });
+    </script>
+</body>
+</html>

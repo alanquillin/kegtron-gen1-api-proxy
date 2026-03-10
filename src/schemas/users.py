@@ -20,3 +20,4 @@ class UserUpdate(UserBase):
     """Schema for updating a user"""
 
     email: Optional[str] = None
+    current_password: Optional[str] = None  # For password change verification

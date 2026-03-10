@@ -89,6 +89,33 @@ async def update_user(
     if "admin" in data and not current_user.admin:
         del data["admin"]
 
+    # Handle password change with verification
+    if "password" in data:
+        from argon2 import PasswordHasher
+        from argon2.exceptions import VerifyMismatchError
+        
+        # If changing password, require current password verification (except for admins changing other users)
+        if user_id == str(current_user.id) or not current_user.admin:
+            if not data.get("current_password"):
+                raise HTTPException(status_code=400, detail="Current password required to change password")
+            
+            # Verify current password
+            if user.password_hash:
+                ph = PasswordHasher()
+                try:
+                    ph.verify(user.password_hash, data["current_password"])
+                except VerifyMismatchError:
+                    raise HTTPException(status_code=401, detail="Current password is incorrect")
+            
+        # Hash the new password
+        ph = PasswordHasher()
+        data["password_hash"] = ph.hash(data["password"])
+        del data["password"]
+    
+    # Remove current_password from update data if present
+    if "current_password" in data:
+        del data["current_password"]
+
     LOGGER.debug("Updating user %s with data: %s", user_id, data)
 
     if data:
