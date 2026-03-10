@@ -2,7 +2,6 @@
 from argon2 import PasswordHasher
 from sqlalchemy import Boolean, Column, Integer, String
 from sqlalchemy.schema import Index
-from sqlalchemy.sql import func
 
 from db import Base, CRUDMixin, DictifiableMixin
 
@@ -13,7 +12,7 @@ class User(Base, CRUDMixin, DictifiableMixin):
 
     __tablename__ = TABLE_NAME
 
-    id = Column(Integer, server_default=func.uuid_generate_v4(), primary_key=True)
+    id = Column(Integer, primary_key=True, autoincrement=True)
     email = Column(String, nullable=False)
     first_name = Column(String, nullable=True)
     last_name = Column(String, nullable=True)

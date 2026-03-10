@@ -96,7 +96,7 @@ async def delete_service_account(
 @router.post("/{service_account_id}/api_key/generate", response_model=dict)
 async def generate_service_account_api_key(
     service_account_id: str,
-    current_user: AuthUser = Depends(require_user),
+    current_user: AuthUser = Depends(require_admin),
     db: AsyncSession = Depends(get_async_db),
 ):
     """Generate a new API key for service account"""
@@ -115,7 +115,7 @@ async def generate_service_account_api_key(
 @router.delete("/{service_account_id}/api_key", status_code=204)
 async def delete_service_account_api_key(
     service_account_id: str,
-    current_user: AuthUser = Depends(require_user),
+    current_user: AuthUser = Depends(require_admin),
     db: AsyncSession = Depends(get_async_db),
 ):
     """Delete service account's API key (admin only)"""

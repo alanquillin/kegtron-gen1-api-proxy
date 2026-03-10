@@ -79,9 +79,8 @@ async def update_device_ports(
     device_id: str,
     ports_dict: dict,
     ports: list[portsDB],
-    db: AsyncSession = Depends(get_async_db),
+    db: AsyncSession,
     create_on_not_found: bool = False,
-    current_user: AuthUser = Depends(require_user),
 ):
     for idx, port_dict in ports_dict.items():
         idx = int(idx)

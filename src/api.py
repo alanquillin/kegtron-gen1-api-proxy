@@ -15,7 +15,11 @@ LOGGER = logging.getLogger(__name__)
 
 
 _secret_key = CONFIG.get("app.secret_key")
+
 if not _secret_key:
+    if CONFIG.get("ENV") == "production":
+        raise ValueError("app.secret_key must be configured in production")
+
     _secret_key = str(uuid.uuid4())
     LOGGER.warning("No 'app.secret_key' configured. Sessions will not persist across restarts. Set 'app.secret_key' in config for production use.")
 

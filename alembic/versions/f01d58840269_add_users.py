@@ -31,8 +31,8 @@ def upgrade() -> None:
     sa.Column('api_key', sa.String(), nullable=True),
     sa.PrimaryKeyConstraint('id')
     )
-    op.create_index("ix_user_email'", "users", ["email"], unique=True)
-    op.create_index("ix_user_api_key", "users", ["api_key"], unique=True)
+    op.create_index('ix_user_email', 'users', ['email'], unique=True)
+    op.create_index('ix_user_api_key', 'users', ['api_key'], unique=True)
 
     op.create_table('service_accounts',
     sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
@@ -41,7 +41,7 @@ def upgrade() -> None:
     sa.Column('api_key', sa.String(), nullable=True),
     sa.PrimaryKeyConstraint('id')
     )
-    op.create_index("ix_service_accounts_api_key", "service_accounts", ["api_key"], unique=True)
+    op.create_index('ix_service_accounts_api_key', 'service_accounts', ['api_key'], unique=True)
     # ### end Alembic commands ###
 
 
@@ -50,6 +50,6 @@ def downgrade() -> None:
     op.drop_index(op.f('ix_user_email'), table_name='users')
     op.drop_index(op.f('ix_user_api_key'), table_name='users')
     op.drop_table('users')
-    op.drop_index(op.f('ix_service_account_api_key'), table_name='service_accounts')
+    op.drop_index(op.f('ix_service_accounts_api_key'), table_name='service_accounts')
     op.drop_table('service_accounts')
     # ### end Alembic commands ###
