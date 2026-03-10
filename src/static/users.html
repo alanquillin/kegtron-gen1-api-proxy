@@ -356,8 +356,11 @@
         }
 
         function editUser(userId) {
-            const user = users.find(u => u.id === userId);
-            if (!user) return;
+            const user = users.find(u => String(u.id) === String(userId));
+            if (!user) {
+                console.error('User not found with ID:', userId, 'Available users:', users.map(u => u.id));
+                return;
+            }
             
             $('#userModalTitle').text('Edit User');
             $('#userForm').removeClass('was-validated');
