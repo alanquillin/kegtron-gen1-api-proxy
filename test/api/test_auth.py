@@ -253,8 +253,7 @@ class TestServiceAccountAPIKeyAuthentication:
         service_account = await ServiceAccountDB.create(
             async_db_session,
             name="Test Service",
-            api_key="service-test-api-key-789",
-            admin=False
+            api_key="service-test-api-key-789"
         )
         await async_db_session.commit()
 
@@ -297,8 +296,7 @@ class TestServiceAccountAPIKeyAuthentication:
         service_account = await ServiceAccountDB.create(
             async_db_session,
             name="Test Service 2",
-            api_key="service-test-api-key-abc",
-            admin=False
+            api_key="service-test-api-key-abc"
         )
         await async_db_session.commit()
 
@@ -329,18 +327,17 @@ class TestServiceAccountAPIKeyAuthentication:
         api.dependency_overrides.clear()
 
     @pytest.mark.asyncio
-    async def test_admin_service_account_access(self, async_db_session, mock_config):
-        """Test that an admin service account can access admin endpoints."""
+    async def test_service_account_cannot_access_admin_endpoints(self, async_db_session, mock_config):
+        """Test that service accounts cannot access admin endpoints."""
         from httpx import ASGITransport, AsyncClient
         from api import api
         from db import get_async_db
 
-        # Create an admin service account
-        admin_service = await ServiceAccountDB.create(
+        # Create a regular service account
+        service_account = await ServiceAccountDB.create(
             async_db_session,
-            name="Admin Service",
-            api_key="admin-service-key",
-            admin=True
+            name="Regular Service",
+            api_key="service-key-123"
         )
         await async_db_session.commit()
 
@@ -354,9 +351,10 @@ class TestServiceAccountAPIKeyAuthentication:
         with patch('api.CONFIG', mock_config):
             transport = ASGITransport(app=api)
             async with AsyncClient(transport=transport, base_url="http://test") as client:
-                headers = {"Authorization": f"Bearer {admin_service.api_key}"}
+                headers = {"Authorization": f"Bearer {service_account.api_key}"}
                 response = await client.get("/api/v1/users", headers=headers)
-                assert response.status_code == 200
+                # Service accounts cannot access admin endpoints
+                assert response.status_code == 403
 
         api.dependency_overrides.clear()
 

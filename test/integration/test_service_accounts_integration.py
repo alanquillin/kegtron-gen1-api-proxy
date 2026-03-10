@@ -32,8 +32,7 @@ class TestServiceAccountsIntegration:
         # Non-admin should be forbidden
         headers = {"Authorization": f"Bearer {test_user['api_key']}"}
         new_account_data = {
-            "name": "Test Service",
-            "admin": False
+            "name": "Test Service"
         }
         response = await async_api_client.post("/api/v1/service_accounts", json=new_account_data, headers=headers)
         assert response.status_code == 403
@@ -44,7 +43,6 @@ class TestServiceAccountsIntegration:
         assert response.status_code == 201
         data = response.json()
         assert data["name"] == "Test Service"
-        assert data["admin"] is False
         assert "id" in data
 
     @pytest.mark.asyncio
@@ -54,7 +52,6 @@ class TestServiceAccountsIntegration:
         custom_key = "custom-test-api-key-12345"
         new_account_data = {
             "name": "Custom API Service",
-            "admin": False,
             "apiKey": custom_key
         }
         
@@ -98,14 +95,12 @@ class TestServiceAccountsIntegration:
         
         # Update it
         update_data = {
-            "name": "Updated Service",
-            "admin": True
+            "name": "Updated Service"
         }
         update_response = await async_api_client.patch(f"/api/v1/service_accounts/{account_id}", json=update_data, headers=headers)
         assert update_response.status_code == 200
         data = update_response.json()
         assert data["name"] == "Updated Service"
-        assert data["admin"] is True
 
     @pytest.mark.asyncio
     async def test_update_nonexistent_service_account(self, async_api_client: AsyncClient, admin_user: Dict):
@@ -121,7 +116,7 @@ class TestServiceAccountsIntegration:
         admin_headers = {"Authorization": f"Bearer {admin_user['api_key']}"}
         
         # Create a service account to delete
-        create_data = {"name": "Delete Test", "admin": False}
+        create_data = {"name": "Delete Test"}
         create_response = await async_api_client.post("/api/v1/service_accounts", json=create_data, headers=admin_headers)
         assert create_response.status_code == 201
         account_id = create_response.json()["id"]
@@ -205,8 +200,8 @@ class TestServiceAccountsIntegration:
         """Test service account permission levels."""
         headers = {"Authorization": f"Bearer {admin_user['api_key']}"}
         
-        # Create non-admin service account
-        regular_data = {"name": "Regular Service", "admin": False}
+        # Create service account
+        regular_data = {"name": "Regular Service"}
         regular_response = await async_api_client.post("/api/v1/service_accounts", json=regular_data, headers=headers)
         assert regular_response.status_code == 201
         regular_key = regular_response.json().get("apiKey")
@@ -217,8 +212,8 @@ class TestServiceAccountsIntegration:
             gen_response = await async_api_client.post(f"/api/v1/service_accounts/{regular_id}/api_key/generate", headers=headers)
             regular_key = gen_response.json()["apiKey"]
         
-        # Create admin service account
-        admin_data = {"name": "Admin Service", "admin": True}
+        # Create another service account
+        admin_data = {"name": "Another Service"}
         admin_response = await async_api_client.post("/api/v1/service_accounts", json=admin_data, headers=headers)
         assert admin_response.status_code == 201
         admin_service_key = admin_response.json().get("apiKey")
@@ -240,16 +235,16 @@ class TestServiceAccountsIntegration:
         response = await async_api_client.get("/api/v1/users", headers=regular_headers)
         assert response.status_code == 403
         
-        # Test admin service account permissions
+        # Test second service account permissions (same as first)
         admin_service_headers = {"Authorization": f"Bearer {admin_service_key}"}
         
         # Can access devices
         response = await async_api_client.get("/api/v1/devices", headers=admin_service_headers)
         assert response.status_code == 200
         
-        # Can access users list
+        # Cannot access users list (service accounts don't have admin privileges)
         response = await async_api_client.get("/api/v1/users", headers=admin_service_headers)
-        assert response.status_code == 200
+        assert response.status_code == 403
 
 
 class TestServiceAccountAuthenticationIntegration:
@@ -291,40 +286,39 @@ class TestServiceAccountAuthenticationIntegration:
         assert response.status_code == 401
 
     @pytest.mark.asyncio
-    async def test_service_account_admin_privileges(self, async_api_client: AsyncClient, admin_user: Dict):
-        """Test admin service account has proper privileges."""
+    async def test_service_account_cannot_access_admin_endpoints(self, async_api_client: AsyncClient, admin_user: Dict):
+        """Test service accounts cannot access admin endpoints."""
         headers = {"Authorization": f"Bearer {admin_user['api_key']}"}
         
-        # Create an admin service account
-        admin_service_data = {
-            "name": "Admin Service Account",
-            "admin": True
+        # Create a service account
+        service_data = {
+            "name": "Test Service Account"
         }
-        response = await async_api_client.post("/api/v1/service_accounts", json=admin_service_data, headers=headers)
+        response = await async_api_client.post("/api/v1/service_accounts", json=service_data, headers=headers)
         assert response.status_code == 201
         account_id = response.json()["id"]
         
         # Generate API key
         gen_response = await async_api_client.post(f"/api/v1/service_accounts/{account_id}/api_key/generate", headers=headers)
         assert gen_response.status_code == 200
-        admin_api_key = gen_response.json()["apiKey"]
+        service_api_key = gen_response.json()["apiKey"]
         
-        # Use admin service account to perform admin actions
-        admin_service_headers = {"Authorization": f"Bearer {admin_api_key}"}
+        # Use service account to try admin actions
+        service_headers = {"Authorization": f"Bearer {service_api_key}"}
         
-        # Should be able to create users
+        # Should NOT be able to create users (admin-only)
         new_user_data = {
             "email": "servicetest@test.com",
             "firstName": "Service",
             "lastName": "Created",
             "admin": False
         }
-        user_response = await async_api_client.post("/api/v1/users", json=new_user_data, headers=admin_service_headers)
-        assert user_response.status_code == 201
+        user_response = await async_api_client.post("/api/v1/users", json=new_user_data, headers=service_headers)
+        assert user_response.status_code == 403
         
-        # Should be able to list users
-        list_response = await async_api_client.get("/api/v1/users", headers=admin_service_headers)
-        assert list_response.status_code == 200
+        # Should NOT be able to list users (admin-only)
+        list_response = await async_api_client.get("/api/v1/users", headers=service_headers)
+        assert list_response.status_code == 403
 
     @pytest.mark.asyncio
     async def test_mixed_authentication_priority(self, async_api_client: AsyncClient, test_user: Dict):

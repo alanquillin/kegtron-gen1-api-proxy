@@ -255,7 +255,7 @@ class TestUserAuthenticationIntegration:
         assert response.json()["email"] == test_user["email"]
         
         # Logout (returns redirect)
-        logout_response = await async_api_client.post("/logout")
+        logout_response = await async_api_client.get("/logout")
         assert logout_response.status_code in (200, 307)  # May redirect
         
         # No longer authenticated

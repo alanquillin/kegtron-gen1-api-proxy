@@ -302,15 +302,13 @@ def create_test_service_account(db_session):
     """Factory fixture to create test service accounts in the database."""
     def _create_service_account(
         name="Test Service",
-        api_key="service-api-key",
-        admin=False
+        api_key="service-api-key"
     ):
         from db.service_accounts import ServiceAccount
         
         account = ServiceAccount(
             name=name,
-            api_key=api_key,
-            admin=admin
+            api_key=api_key
         )
         db_session.add(account)
         db_session.commit()
@@ -360,8 +358,7 @@ def test_service_account(create_test_service_account):
     return {
         "id": account.id,
         "name": account.name,
-        "api_key": account.api_key,
-        "admin": account.admin
+        "api_key": account.api_key
     }
 
 

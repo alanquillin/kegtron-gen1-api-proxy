@@ -337,22 +337,19 @@ class TestAdminAuthorization:
         assert len(users) == 1
         assert users[0]["email"] == "admin@example.com"
     
-    def test_admin_service_account_access(self, api_client, create_test_service_account):
-        """Test that admin service accounts can access admin endpoints."""
-        # Create an admin service account
-        admin_service = create_test_service_account(
-            name="Admin Service",
-            api_key="admin-service-key",
-            admin=True
+    def test_service_account_cannot_access_admin_endpoints(self, api_client, create_test_service_account):
+        """Test that service accounts cannot access admin endpoints."""
+        # Create a service account
+        service_account = create_test_service_account(
+            name="Regular Service",
+            api_key="service-key-123"
         )
         
-        # Access service accounts list (admin only)
-        headers = {"Authorization": f"Bearer {admin_service.api_key}"}
+        # Try to access service accounts list (admin only) - should be forbidden
+        headers = {"Authorization": f"Bearer {service_account.api_key}"}
         response = api_client.get("/api/v1/service_accounts", headers=headers)
-        assert response.status_code == 200
-        accounts = response.json()
-        assert len(accounts) == 1
-        assert accounts[0]["name"] == "Admin Service"
+        assert response.status_code == 403
+        assert "not authorized" in response.json()["detail"].lower()
 
 
 class TestSessionAuthentication:
