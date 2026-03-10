@@ -8,9 +8,35 @@
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <style>
+        .auth-loading {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 60vh;
+            text-align: center;
+        }
+        
+        .auth-loading .spinner-border {
+            width: 3rem;
+            height: 3rem;
+            margin-bottom: 1rem;
+        }
+        
+        .content-hidden {
+            display: none !important;
+        }
+    </style>
 </head>
 <body>
-    <div class="container-fluid px-4">
+    <!-- Authentication loading indicator -->
+    <div id="authLoading" class="auth-loading">
+        &nbsp;
+    </div>
+    
+    <!-- Main content (initially hidden) -->
+    <div class="container-fluid px-4 content-hidden" id="mainContent">
         <h1 class="text-center mb-4">Kegtron Gen1 - Device Configuration</h1>
         
         <div class="row mb-4">
@@ -199,8 +225,19 @@
             </div>
         </div>
     </div>
+    </div> <!-- End of mainContent wrapper -->
 
     <script>
+        // Add API key to AJAX requests if stored in session
+        $.ajaxSetup({
+            beforeSend: function(xhr) {
+                const apiKey = sessionStorage.getItem('apiKey');
+                if (apiKey) {
+                    xhr.setRequestHeader('Authorization', `Bearer ${apiKey}`);
+                }
+            }
+        });
+
         let devices = [];
         let selectedDevice = null;
         let selectedPortIndex = null;
@@ -566,8 +603,32 @@
             }
         });
 
+        function checkAuthentication() {
+            // Check if user is authenticated
+            $.ajax({
+                url: '/api/v1/users/current',
+                method: 'GET',
+                success: function(data) {
+                    // User is authenticated, show content and proceed with loading devices
+                    $('#authLoading').hide();
+                    $('#mainContent').removeClass('content-hidden');
+                    loadDevices();
+                },
+                error: function() {
+                    // Not authenticated, hide loading indicator and redirect to login page
+                    $('#authLoading').html('<p>Not authenticated. Redirecting to login...</p>');
+                    
+                    // Save the current URL to redirect back after login
+                    const returnUrl = encodeURIComponent(window.location.href);
+                    setTimeout(() => {
+                        window.location.href = `/login.html?redirect=${returnUrl}`;
+                    }, 1000);
+                }
+            });
+        }
+
         $(document).ready(function() {
-            loadDevices();
+            checkAuthentication();
         });
     </script>
 </body>

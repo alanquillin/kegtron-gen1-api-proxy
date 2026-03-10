@@ -60,7 +60,7 @@ async def login(request: Request, login_data: LoginRequest, db_session: AsyncSes
     return True
 
 
-@router.post("/logout")
+@router.get("/logout")
 async def logout(request: Request):
     """
     Logout endpoint.

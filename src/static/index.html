@@ -126,13 +126,17 @@
             // Generate unique card ID
             const cardId = `card-${deviceId}-${portIndex}`.replace(/[^a-zA-Z0-9-]/g, '-');
 
+            // Only show settings icon if user is logged in
+            const settingsIcon = userIsLoggedIn ? 
+                `<a href="/config.html?device_id=${deviceId}" class="settings-icon" title="Configure Device">
+                    <span class="material-icons">settings</span>
+                </a>` : '';
+
             return `
                 <div class="col-md-6 col-lg-4">
                     <div class="card device-card" id="${cardId}">
                         <div class="card-body">
-                            <a href="/config.html?device_id=${deviceId}" class="settings-icon" title="Configure Device">
-                                <span class="material-icons">settings</span>
-                            </a>
+                            ${settingsIcon}
                             <div class="device-header">${headerInfo}</div>
                             <div class="device-name">
                                 <h5>${displayName}</h5>
@@ -285,6 +289,7 @@
         let refreshInterval = null;
         let autoRefreshEnabled = true;
         let expandedCards = new Set(); // Track which cards are expanded
+        let userIsLoggedIn = false; // Track user authentication status
 
         function getRefreshInterval() {
             return parseInt($('#refreshInterval').val()) * 1000;
@@ -340,15 +345,27 @@
                 method: 'GET',
                 success: function(data) {
                     // User is logged in
+                    const wasLoggedIn = userIsLoggedIn;
+                    userIsLoggedIn = true;
                     $('#userInfo').text(`Welcome, ${data.email || 'User'}`).show();
                     $('#logoutLink').show();
                     $('#loginLink').hide();
+                    // Reload devices if login status changed to show/hide config buttons
+                    if (!wasLoggedIn) {
+                        loadDevices();
+                    }
                 },
                 error: function() {
                     // Not logged in or no session
+                    const wasLoggedIn = userIsLoggedIn;
+                    userIsLoggedIn = false;
                     $('#userInfo').hide();
                     $('#logoutLink').hide();
                     $('#loginLink').show();
+                    // Reload devices if login status changed to show/hide config buttons
+                    if (wasLoggedIn) {
+                        loadDevices();
+                    }
                 }
             });
         }
