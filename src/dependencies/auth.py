@@ -65,7 +65,7 @@ class AuthUser:
         if not service_account:
             return None
 
-        return AuthUser(service_account.id, None, None, None, None, service_account.api_key, service_account.admin, True, service_account.name)
+        return AuthUser(service_account.id, None, None, None, None, service_account.api_key, False, True, service_account.name)
 
 
 async def get_current_user_from_api_key(

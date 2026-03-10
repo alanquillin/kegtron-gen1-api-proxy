@@ -87,6 +87,21 @@
                             <span class="material-icons">account_circle</span>
                             Profile
                         </a></li>
+                        <li class="admin-menu-items" style="display: none;">
+                            <hr class="dropdown-divider">
+                        </li>
+                        <li class="admin-menu-items" style="display: none;">
+                            <a class="dropdown-item" href="/users.html">
+                                <span class="material-icons">people</span>
+                                Users
+                            </a>
+                        </li>
+                        <li class="admin-menu-items" style="display: none;">
+                            <a class="dropdown-item" href="/service_accounts.html">
+                                <span class="material-icons">smart_toy</span>
+                                Service Accounts
+                            </a>
+                        </li>
                         <li><hr class="dropdown-divider"></li>
                         <li><a class="dropdown-item" href="/logout">
                             <span class="material-icons">logout</span>
@@ -205,6 +220,13 @@
                         userData.email || 'User';
                     $('#userFullName').text(fullName);
                     $('#userEmailNav').text(userData.email || '');
+                    
+                    // Show/hide admin menu items
+                    if (userData.admin) {
+                        $('.admin-menu-items').show();
+                    } else {
+                        $('.admin-menu-items').hide();
+                    }
                     
                     populateProfile(userData);
                 },

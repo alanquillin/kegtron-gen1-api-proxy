@@ -23,7 +23,7 @@ import scan as kegtron_ble_scanner
 from api import api
 from db import AsyncSessionLocal
 from db.users import User as UsersDB
-
+from db.service_accounts import ServiceAccount as ServiceAccountDB
 # Global application instance for access from other modules
 app_instance = None
 
@@ -89,13 +89,33 @@ class Application:
         
         return {"status": "running", "message": "Scanner is running normally"}
     
+    async def check_scanner_service_account(self):
+        if CONFIG.get("scanner.backend") != "api" or not CONFIG.get("scanner.enabled"):
+            LOGGER.info("Scanner backend is not API, skipping service account check")
+            return
+
+        service_account_api_key = CONFIG.get("scanner.service_account.api_key")
+        if not service_account_api_key:
+            msg = "Scanner is enabled and configured to use the API backend, but the service account API key is not set"
+            LOGGER.error(msg)
+            raise ValueError(msg)
+
+        LOGGER.info("Checking if the scanner service account exists")
+        async with AsyncSessionLocal() as db:
+            service_account = await ServiceAccountDB.get_by_api_key(db, service_account_api_key)
+            if not service_account:
+                LOGGER.info("Scanner service account not found, creating it")
+                await ServiceAccountDB.create(db, api_key=service_account_api_key, name="Scanner")
+
     async def start_scanner(self):
         """Start the BLE scanner with automatic restart on failure"""
         async def scanner_with_restart():
             """Inner function to handle scanner restarts"""
             consecutive_failures = 0
             max_consecutive_failures = 5
-            
+
+            await self.check_scanner_service_account()
+
             while not self.shutdown_event.is_set():
                 try:
                     LOGGER.info("Starting BLE scanner...")
@@ -167,16 +187,17 @@ class Application:
         
         The method runs until interrupted (Ctrl+C) or cancelled.
         """
-        # Initialize first user if needed
-        LOGGER.info("Checking for initial user...")
-        await self.initialize_first_user()
-
-        scanner_enabled = CONFIG.get("scanner.enabled")
-        if scanner_enabled:
-            LOGGER.info("Starting the Kegtron BLE Scanner...")
-            await self.start_scanner()
 
         try:
+            # Initialize first user if needed
+            LOGGER.info("Checking for initial user...")
+            await self.initialize_first_user()
+
+            scanner_enabled = CONFIG.get("scanner.enabled")
+            if scanner_enabled:
+                LOGGER.info("Starting the Kegtron BLE Scanner...")
+                await self.start_scanner()
+
             await self.start_http_server()
         except asyncio.CancelledError:
             LOGGER.info("Application shutting down...")

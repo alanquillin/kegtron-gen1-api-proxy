@@ -5,7 +5,7 @@ from schemas import CamelCaseModel
 
 class ServiceAccountBase(CamelCaseModel):
     api_key: Optional[str] = None
-    admin: Optional[bool] = None
+    description: Optional[str] = None
 
 
 class ServiceAccountCreate(ServiceAccountBase):

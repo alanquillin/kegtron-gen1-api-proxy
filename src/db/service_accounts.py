@@ -13,9 +13,9 @@ class ServiceAccount(Base, CRUDMixin, DictifiableMixin):
     __tablename__ = TABLE_NAME
 
     id = Column(Integer, server_default=func.uuid_generate_v4(), primary_key=True)
-    admin = Column(Boolean, nullable=False, default=False)
     api_key = Column(String, nullable=True)
     name = Column(String, nullable=False)
+    description = Column(String, nullable=True)
 
     __table_args__ = (
         Index("ix_service_account_api_key", api_key, unique=True),
