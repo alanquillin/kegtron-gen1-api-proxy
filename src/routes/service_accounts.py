@@ -60,7 +60,7 @@ async def get_service_account(
 async def update_service_account(
     service_account_id: str,
     service_account_data: ServiceAccountUpdate,
-    current_user: AuthUser = Depends(require_user),
+    current_user: AuthUser = Depends(require_admin),
     db: AsyncSession = Depends(get_async_db),
 ):
     """Update a service account (admin only)"""

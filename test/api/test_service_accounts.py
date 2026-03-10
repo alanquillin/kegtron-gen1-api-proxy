@@ -160,7 +160,7 @@ class TestServiceAccountEndpoints:
             assert "not found" in response.json()["detail"].lower()
 
     @pytest.mark.asyncio
-    async def test_update_service_account(self, client):
+    async def test_update_service_account(self, client_admin):
         """Test updating a service account."""
         account_id = str(uuid.uuid4())
         update_data = {
@@ -192,7 +192,7 @@ class TestServiceAccountEndpoints:
                         }
                     mock_transform.side_effect = transform_side_effect
                     
-                    response = await client.patch(f"/api/v1/service_accounts/{account_id}", json=update_data)
+                    response = await client_admin.patch(f"/api/v1/service_accounts/{account_id}", json=update_data)
                 assert response.status_code == 200
                 data = response.json()
                 assert data["name"] == "Updated Service"
@@ -201,12 +201,12 @@ class TestServiceAccountEndpoints:
                 mock_account.update.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_update_nonexistent_service_account(self, client):
+    async def test_update_nonexistent_service_account(self, client_admin):
         """Test updating non-existent service account returns 404."""
         with patch('routes.service_accounts.ServiceAccountsDB.get', new_callable=AsyncMock) as mock_get:
             mock_get.return_value = None
             
-            response = await client.patch("/api/v1/service_accounts/nonexistent", json={"name": "Updated"})
+            response = await client_admin.patch("/api/v1/service_accounts/nonexistent", json={"name": "Updated"})
             assert response.status_code == 404
 
     @pytest.mark.asyncio

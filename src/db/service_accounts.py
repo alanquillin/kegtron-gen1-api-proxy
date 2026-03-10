@@ -12,7 +12,7 @@ class ServiceAccount(Base, CRUDMixin, DictifiableMixin):
 
     __tablename__ = TABLE_NAME
 
-    id = Column(Integer, server_default=func.uuid_generate_v4(), primary_key=True)
+    id = Column(Integer, primary_key=True, autoincrement=True)
     api_key = Column(String, nullable=True)
     name = Column(String, nullable=False)
     description = Column(String, nullable=True)

@@ -50,12 +50,12 @@ update-depends:
 
 # Targets for running the app
 
-seed_data: export PYTHONPATH=$(CURDIR)/src:$PYTHONPATH
-seed_data:
+seed-data: export PYTHONPATH=$(CURDIR)/src:$PYTHONPATH
+seed-data:
 	$(PYTHON) data/seed_data.py
 
 run-debug: export KEGTRON_PROXY_LOG_LEVEL=DEBUG
-run-debug: run-db-migrations seed_data
+run-debug: run-db-migrations seed-data
 	$(PYTHON) src/app.py
 
 run: run-db-migrations
@@ -64,7 +64,7 @@ run: run-db-migrations
 scan:
 	$(PYTHON) src/scan.py 
 
-scan_debug: export KEGTRON_SCANNER_LOG_LEVEL=DEBUG
+scan-debug: export KEGTRON_SCANNER_LOG_LEVEL=DEBUG
 scan-debug:
 	$(PYTHON) src/scan.py
 
@@ -139,4 +139,4 @@ help:
 	@echo "  Database:"
 	@echo "    create-migration  - Create a new database migration"
 	@echo "    run-db-migrations - Run database migrations"
-	@echo "    seed_data         - Seed the database with test data"
+	@echo "    seed-data         - Seed the database with test data"
