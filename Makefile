@@ -32,9 +32,7 @@ ifneq ("$(wildcard .env)","")
 endif
 
 export KEGTRON_PROXY_CONFIG_BASE_DIR=$(CURDIR)/config
-export KEGTRON_SCANNER_CONFIG_BASE_DIR=$(CURDIR)/config
 export KEGTRON_PROXY_DB_BASE_DIR=$(CURDIR)/data
-export KEGTRON_SCANNER_DB_BASE_DIR=$(CURDIR)/data
 export KEGTRON_PROXY_STATIC_FILES_DIR=$(CURDIR)/src/static
 export KEGTRON_PROXY_ENV=development
 

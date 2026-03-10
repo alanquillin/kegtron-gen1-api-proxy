@@ -11,7 +11,7 @@ from lib.util import dict_to_camel_case
 
 if __name__ == "__main__":
     # Initialize configuration
-    CONFIG = Config(config_files=["default.json"], env_prefix="KEGTRON_SCANNER")
+    CONFIG = Config(config_files=["default.json"], env_prefix="KEGTRON_PROXY")
     # Initialize logging
     logging.init(config=CONFIG, fmt=logging.DEFAULT_LOG_FMT)
 else:
@@ -38,8 +38,20 @@ from lib.time import utcnow_aware
 service_account_api_key = None
 proxy_url_prefix = None
 
+if CONFIG.get("scanner.backend") == "api" and CONFIG.get("proxy.enabled"):
+    service_account_api_key = CONFIG.get("scanner.service_account.api_key")
+    if not service_account_api_key:
+        msg = "Scanner is enabled and configured to use the API backend, but the service account API key is not set"
+        LOGGER.error(msg)
+        raise ValueError(msg)
+
+    proxy_url_prefix = f'{CONFIG.get("proxy.scheme")}://{CONFIG.get("proxy.host")}:{CONFIG.get("proxy.port")}/api/v1'
+    LOGGER.info("Scanner is enabled and configured to use the API backend, proxy URL prefix: %s", proxy_url_prefix)
+
 kegtron_devices = {}
 device_updates = {}
+
+DEFAULT_DISPLAY_UNIT = CONFIG.get("default_display_unit", "gal")
 
 
 def name_to_id(name):
@@ -140,7 +152,7 @@ async def _update_device_db(data: dict) -> bool:
                     break
             if not port:
                 port_dict["device_id"] = device_id
-                port_dict["display_unit"] = "mL"
+                port_dict["display_unit"] = DEFAULT_DISPLAY_UNIT
                 port = await Port.create(db, autocommit=False, **port_dict)
             else:
                 await port.update(db, autocommit=False, **port_dict)
@@ -279,15 +291,6 @@ if __name__ == "__main__":
 
     CONFIG.set("proxy.enabled", not args.no_proxy)
     app_config = CONFIG
-
-    if CONFIG.get("scanner.backend") == "api" and CONFIG.get("proxy.enabled"):
-        service_account_api_key = CONFIG.get("proxy.auth.initial_user.api_key")
-        if not service_account_api_key:
-            msg = "Scanner is enabled and configured to use the API backend, but the service account API key is not set"
-            LOGGER.error(msg)
-            raise ValueError(msg)
-
-        proxy_url_prefix = f'{CONFIG.get("proxy.scheme")}://{CONFIG.get("proxy.host")}:{CONFIG.get("proxy.port")}/api/v1'
 
     ignore_logging_modules = ["bleson"]
     for i in ignore_logging_modules:

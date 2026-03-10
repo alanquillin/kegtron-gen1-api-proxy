@@ -34,8 +34,6 @@ async def _create_device_with_ports(device_dict: dict, db: AsyncSession):
                 LOGGER.debug("display unit not provided, setting to system default: %s", display_unit)
                 port_dict["display_unit"] = display_unit
             port_dict["device_id"] = dev.id
-            if "display_unit" not in port_dict:
-                port_dict["display_unit"] = "mL"
             p = await portsDB.create(db, autocommit=False, **port_dict)
             new_ports.append(p)
     try:
@@ -99,8 +97,6 @@ async def update_device_ports(device_id: str, ports_dict: dict, ports: list[port
                         LOGGER.debug("display unit not provided, setting to system default: %s", display_unit)
                         port_dict["display_unit"] = display_unit
                     port_dict["device_id"] = device_id
-                    if "display_unit" not in port_dict:
-                        port_dict["display_unit"] = "mL"
                     await portsDB.create(db, autocommit=False, **port_dict)
                 else:
                     raise HTTPException(status_code=404, detail=f"Port with index {idx} for device {device_id} not found")
