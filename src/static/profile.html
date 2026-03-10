@@ -3,149 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kegtron Gen1 - Profile</title>
+    <title>Kegtron Gen1 API Proxy - Profile</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <style>
-        body {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-
-        .navbar {
-            background: rgba(255, 255, 255, 0.98);
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-            padding: 15px 0;
-        }
-
-        .navbar-brand {
-            font-weight: bold;
-            color: #667eea;
-        }
-
-        .nav-link {
-            color: #6c757d;
-            margin: 0 10px;
-            transition: color 0.2s;
-        }
-
-        .nav-link:hover {
-            color: #667eea;
-        }
-
-        .profile-container {
-            margin-top: 30px;
-            padding: 0 15px;
-        }
-
-        .profile-card {
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.2);
-            margin-bottom: 30px;
-            overflow: hidden;
-        }
-
-        .profile-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            padding: 30px;
-            text-align: center;
-            color: white;
-        }
-
-        .profile-header h2 {
-            margin: 0;
-            font-size: 24px;
-            font-weight: bold;
-        }
-
-        .profile-header p {
-            margin: 10px 0 0;
-            opacity: 0.9;
-        }
-
-        .profile-body {
-            padding: 30px;
-        }
-
-        .section-title {
-            font-size: 18px;
-            font-weight: 600;
-            color: #333;
-            margin-bottom: 20px;
-            padding-bottom: 10px;
-            border-bottom: 2px solid #f0f0f0;
-        }
+        /* Profile-specific styles only */
 
         .form-group {
             margin-bottom: 20px;
-        }
-
-        .form-label {
-            color: #6c757d;
-            margin-bottom: 8px;
-            font-weight: 500;
-        }
-
-        .form-control {
-            border-radius: 10px;
-            border: 1px solid #dee2e6;
-            padding: 10px 15px;
-            transition: border-color 0.2s, box-shadow 0.2s;
-        }
-
-        .form-control:focus {
-            border-color: #667eea;
-            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
-        }
-
-        .btn-primary {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border: none;
-            border-radius: 10px;
-            padding: 10px 25px;
-            font-weight: 600;
-            transition: transform 0.2s, box-shadow 0.2s;
-        }
-
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 7px 14px rgba(50,50,93,.1), 0 3px 6px rgba(0,0,0,.08);
-            background: linear-gradient(135deg, #5a6fd6 0%, #6a428e 100%);
-        }
-
-        .btn-danger {
-            background: #dc3545;
-            border: none;
-            border-radius: 10px;
-            padding: 10px 25px;
-            font-weight: 600;
-            transition: transform 0.2s, box-shadow 0.2s;
-        }
-
-        .btn-danger:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 7px 14px rgba(220,53,69,.2), 0 3px 6px rgba(0,0,0,.08);
-            background: #c82333;
-        }
-
-        .btn-secondary {
-            background: #6c757d;
-            border: none;
-            border-radius: 10px;
-            padding: 10px 25px;
-            font-weight: 600;
-        }
-
-        .alert {
-            border-radius: 10px;
-            margin-bottom: 20px;
-            display: none;
-        }
-
-        .alert.show {
-            display: block;
         }
 
         .api-key-section {
@@ -185,12 +53,6 @@
             position: relative;
         }
 
-        .spinner-border {
-            width: 1.5rem;
-            height: 1.5rem;
-            margin-right: 8px;
-        }
-
         .text-muted {
             color: #6c757d !important;
             font-size: 14px;
@@ -201,24 +63,49 @@
     <!-- Navbar -->
     <nav class="navbar navbar-expand-lg">
         <div class="container">
-            <a class="navbar-brand" href="/">Kegtron Gen1</a>
+            <a class="navbar-brand" href="/">Kegtron Gen1 API Proxy</a>
             <div class="navbar-nav ms-auto">
-                <a class="nav-link" href="/">Dashboard</a>
-                <a class="nav-link" href="/config.html">Config</a>
-                <a class="nav-link active" href="/profile.html">Profile</a>
-                <a class="nav-link" href="#" onclick="logout()">Logout</a>
+                <div class="dropdown" id="userDropdown">
+                    <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Menu">
+                        <span class="material-icons">menu</span>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li class="dropdown-user-info">
+                            <div class="dropdown-user-name" id="userFullName">User</div>
+                            <div class="dropdown-user-email" id="userEmailNav">Loading...</div>
+                        </li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="/">
+                            <span class="material-icons">dashboard</span>
+                            Dashboard
+                        </a></li>
+                        <li><a class="dropdown-item" href="/config.html">
+                            <span class="material-icons">settings</span>
+                            Configuration
+                        </a></li>
+                        <li><a class="dropdown-item active" href="/profile.html">
+                            <span class="material-icons">account_circle</span>
+                            Profile
+                        </a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="/logout">
+                            <span class="material-icons">logout</span>
+                            Logout
+                        </a></li>
+                    </ul>
+                </div>
             </div>
         </div>
     </nav>
 
-    <div class="container profile-container">
+    <div class="container main-container">
         <!-- Profile Information Card -->
-        <div class="profile-card">
-            <div class="profile-header">
-                <h2>My Profile</h2>
+        <div class="content-card">
+            <div class="content-header">
+                <h1>My Profile</h1>
                 <p id="userEmail">Loading...</p>
             </div>
-            <div class="profile-body">
+            <div class="content-body">
                 <!-- Alert Messages -->
                 <div id="profileAlert" class="alert" role="alert">
                     <span id="profileAlertMessage"></span>
@@ -295,7 +182,6 @@
         </div>
     </div>
 
-    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script>
         let currentUserId = null;
         let currentUserData = null;
@@ -312,6 +198,14 @@
                 success: function(userData) {
                     currentUserData = userData;
                     currentUserId = userData.id;
+                    
+                    // Update user info in dropdown
+                    const fullName = (userData.firstName || userData.lastName) ? 
+                        `${userData.firstName || ''} ${userData.lastName || ''}`.trim() : 
+                        userData.email || 'User';
+                    $('#userFullName').text(fullName);
+                    $('#userEmailNav').text(userData.email || '');
+                    
                     populateProfile(userData);
                 },
                 error: function(xhr) {
@@ -370,6 +264,14 @@
                 data: JSON.stringify(updateData),
                 success: function(response) {
                     currentUserData = response;
+                    
+                    // Update user info in dropdown
+                    const fullName = (response.firstName || response.lastName) ? 
+                        `${response.firstName || ''} ${response.lastName || ''}`.trim() : 
+                        response.email || 'User';
+                    $('#userFullName').text(fullName);
+                    $('#userEmailNav').text(response.email || '');
+                    
                     populateProfile(response);
                     showAlert('Profile updated successfully!', 'success');
                 },
@@ -508,21 +410,6 @@
                         errorMessage = xhr.responseJSON.detail;
                     }
                     showAlert(errorMessage, 'danger');
-                }
-            });
-        }
-
-        function logout() {
-            $.ajax({
-                url: '/logout',
-                method: 'GET',
-                success: function() {
-                    window.location.href = '/login.html';
-                },
-                error: function() {
-                    // Clear session storage and redirect anyway
-                    sessionStorage.clear();
-                    window.location.href = '/login.html';
                 }
             });
         }
