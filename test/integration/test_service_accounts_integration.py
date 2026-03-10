@@ -184,7 +184,7 @@ class TestServiceAccountsIntegration:
         user_headers = {"Authorization": f"Bearer {test_user['api_key']}"}
         delete_response = await async_api_client.delete(f"/api/v1/service_accounts/{account_id}/api_key", headers=user_headers)
         assert delete_response.status_code == 403
-        assert "not authorized to delete" in delete_response.json()["detail"].lower()
+        assert "not authorized to access this resource" in delete_response.json()["detail"].lower()
         
         # Admin should succeed
         delete_response = await async_api_client.delete(f"/api/v1/service_accounts/{account_id}/api_key", headers=admin_headers)

@@ -234,8 +234,8 @@ class TestServiceAccountEndpoints:
         assert response.status_code == 403
 
     @pytest.mark.asyncio
-    async def test_generate_service_account_api_key(self, client):
-        """Test generating new API key for service account."""
+    async def test_generate_service_account_api_key(self, client_admin):
+        """Test generating new API key for service account (admin only)."""
         account_id = str(uuid.uuid4())
         
         mock_account = MagicMock()
@@ -247,7 +247,7 @@ class TestServiceAccountEndpoints:
         with patch('routes.service_accounts.ServiceAccountsDB.get', new_callable=AsyncMock) as mock_get:
             mock_get.return_value = mock_account
             
-            response = await client.post(f"/api/v1/service_accounts/{account_id}/api_key/generate")
+            response = await client_admin.post(f"/api/v1/service_accounts/{account_id}/api_key/generate")
             assert response.status_code == 200
             data = response.json()
             assert "apiKey" in data
@@ -259,12 +259,12 @@ class TestServiceAccountEndpoints:
             assert "api_key" in call_args[1]
 
     @pytest.mark.asyncio
-    async def test_generate_api_key_nonexistent_account(self, client):
-        """Test generating API key for non-existent account returns 404."""
+    async def test_generate_api_key_nonexistent_account(self, client_admin):
+        """Test generating API key for non-existent account returns 404 (admin only)."""
         with patch('routes.service_accounts.ServiceAccountsDB.get', new_callable=AsyncMock) as mock_get:
             mock_get.return_value = None
             
-            response = await client.post("/api/v1/service_accounts/nonexistent/api_key/generate")
+            response = await client_admin.post("/api/v1/service_accounts/nonexistent/api_key/generate")
             assert response.status_code == 404
 
     @pytest.mark.asyncio
@@ -324,7 +324,7 @@ class TestServiceAccountEndpoints:
             
             response = await client.delete(f"/api/v1/service_accounts/{account_id}/api_key")
             assert response.status_code == 403
-            assert "not authorized to delete" in response.json()["detail"].lower()
+            assert "not authorized to access" in response.json()["detail"].lower()
             
             # Clean up override
             del api.dependency_overrides[require_user]
