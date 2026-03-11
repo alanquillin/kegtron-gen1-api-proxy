@@ -6,7 +6,7 @@ set -e
 
 SVC_USER_NAME="kegtron"
 GROUP_NAME="kegtron"
-CURRENT_USER=$(id -u -n)
+CURRENT_USER=$(logname)
 
 # Check if running as root
 if [ "$EUID" -ne 0 ]; then 
