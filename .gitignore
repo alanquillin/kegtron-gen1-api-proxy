@@ -41,3 +41,7 @@ __pycache__/
 
 # AI
 .claude/
+
+# deployment
+config/kegtron.config.json
+deploy/kegtron.env

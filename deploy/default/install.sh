@@ -18,6 +18,8 @@ fi
 
 # Copy service file to systemd directory
 echo "Installing systemd service..."
+cp kegtron.env ../
+echo "{}" > ../../config/kegtron.config.json
 cp kegtron-api.service /etc/systemd/system/
 
 # Create directory and set ownership
@@ -32,8 +34,8 @@ systemctl daemon-reload
 echo "Installation complete!"
 echo ""
 echo "Next steps:"
-echo "1. Copy the application files to /opt/kegtron-gen1-api-proxy"
-echo "2. Edit the environment file at /opt/kegtron-gen1-api-proxy/deploy/kegtron.env"
-echo "4. Enable the service: systemctl enable kegtron-api"
-echo "5. Start the service: systemctl start kegtron-api"
-echo "6. Check status: systemctl status kegtron-api"
+echo "1. install dependencies: poetry install --no-root"
+echo "2. Edit the environment file at /opt/kegtron-gen1-api-proxy/deploy/kegtron.env or /opt/kegtron-gen1-api-proxy/config/kegtron.config.json"
+echo "3. Enable the service: sudo systemctl enable kegtron-api"
+echo "4. Start the service: sudo systemctl start kegtron-api"
+echo "5. Check status: sudo systemctl status kegtron-api"
