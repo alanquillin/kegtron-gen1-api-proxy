@@ -1,10 +1,7 @@
 #! /bin/sh
 set -e
 
-if [ "${RUN_ENV}" = "dev" ]; then
-    export FLASK_ENV="development"
-    export KEGTRON_PROXY_LOG_LEVEL="DEBUG"
-fi
+poetry install --no-root --no-interaction --no-ansi && poetry update --no-interaction --no-ansi
 
 if [ "${KEGTRON_PROXY_ROLE}" = "scanner" ]; then
     poetry run python scan.py
