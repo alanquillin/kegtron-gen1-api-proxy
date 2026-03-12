@@ -138,6 +138,7 @@ sudo vim deploy/kegtron.env
 - `KEGTRON_PROXY_APP_SECRET_KEY` - Change this to a secure random string
 - `KEGTRON_PROXY_AUTH_INITIAL_USER_EMAIL` - set to your email
 - `KEGTRON_PROXY_AUTH_INITIAL_USER_PASSWORD` = set an initial password.  You will be able to change this on the profile page later
+- `KEGTRON_PROXY_API_COOKIES_SECURE` - **IMPORTANT**: Set to `false` when running over HTTP (default port 8080). Set to `true` only when using HTTPS/SSL
 - **[Split mode only]**`KEGTRON_PROXY_SCANNER_SERVICE_ACCOUNT_API_KEY` A api key that will be used by the API and scanner.  This will be created when then service starts up
 
 ### Step 6: Start the Service
