@@ -70,7 +70,7 @@ class Application:
 
     def get_scanner_status(self):
         """Get the current scanner status for health checks"""
-        if not CONFIG.get("scanner.enabled"):
+        if not CONFIG.get("proxy.scanner.enabled"):
             return {"status": "disabled", "message": "Scanner is disabled in configuration"}
 
         if not self.scanner_task:
@@ -90,7 +90,7 @@ class Application:
         return {"status": "running", "message": "Scanner is running normally"}
 
     async def check_scanner_service_account(self):
-        if CONFIG.get("scanner.backend") != "api" or not CONFIG.get("scanner.enabled"):
+        if CONFIG.get("scanner.backend") != "api" or not CONFIG.get("proxy.scanner.enabled"):
             LOGGER.info("Scanner backend is not API, skipping service account check")
             return
 
@@ -182,7 +182,7 @@ class Application:
             LOGGER.info("Checking for initial user...")
             await self.initialize_first_user()
 
-            scanner_enabled = CONFIG.get("scanner.enabled")
+            scanner_enabled = CONFIG.get("proxy.scanner.enabled")
             if scanner_enabled:
                 LOGGER.info("Starting the Kegtron BLE Scanner...")
                 await self.start_scanner()

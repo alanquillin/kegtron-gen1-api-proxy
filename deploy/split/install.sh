@@ -2,7 +2,9 @@
 
 # Installation script for Kegtron API systemd service
 
-set -e
+SVC_USER_NAME="kegtron"
+GROUP_NAME="kegtron"
+CURRENT_USER=$(logname)
 
 # Check if running as root
 if [ "$EUID" -ne 0 ]; then 
@@ -10,11 +12,21 @@ if [ "$EUID" -ne 0 ]; then
    exit 1
 fi
 
+# Check if the group exists. If not, create it.
+if ! getent group "$GROUP_NAME" >/dev/null; then
+    echo "Group '$GROUP_NAME' does not exist. Creating group..."
+    groupadd "$GROUP_NAME"
+    echo "Group '$GROUP_NAME' created."
+fi
+
 # Create kegtron user if it doesn't exist
 if ! id "kegtron" &>/dev/null; then
     echo "Creating kegtron user..."
     useradd -r -s /bin/false kegtron
 fi
+
+usermod -aG "$GROUP_NAME" "$SVC_USER_NAME"
+usermod -aG "$GROUP_NAME" "$CURRENT_USER"
 
 # Copy service file to systemd directory
 echo "Installing systemd service..."
@@ -25,7 +37,7 @@ cp kegtron-scanner.service /etc/systemd/system/
 
 # Create directory and set ownership
 echo "Setting up application directory..."
-chown -R kegtron:kegtron /opt/kegtron-gen1-api-proxy
+chown -R "$CURRENT_USER":"$GROUP_NAME" /opt/kegtron-gen1-api-proxy
 chmod +x /opt/kegtron-gen1-api-proxy/entrypoint.sh
 
 # Reload systemd
