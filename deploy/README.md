@@ -4,18 +4,23 @@ This guide explains how to deploy the Kegtron Gen1 API Proxy on a Raspberry Pi u
 
 ## Platform Compatibility
 
-This software is **designed and optimized for Raspberry Pi** running Raspberry Pi OS (Debian-based). The Bluetooth scanning functionality requires a Bluetooth adapter that supports BLE (Bluetooth Low Energy), which is built into Raspberry Pi 3+ models.
+This software is **designed and optimized for Raspberry Pi** running Raspberry Pi OS (Debian-based). However it should be compatible with any modern OS that support BLE (Bluetooth Low Energy). The Bluetooth scanning functionality requires a Bluetooth adapter that supports BLE, which is built into Raspberry Pi 3+ models.
 
-**Note for other platforms:** While the API component can run on other Linux systems, the Bluetooth scanner functionality may have limited compatibility outside of Raspberry Pi. The software has been primarily tested on:
-- Raspberry Pi 3B+
+**Note for other platforms:** Both the scanner and API backend using the [bleson](https://github.com/TheCellule/python-bleson) package for BLE communication.  This package is compatible with most modern operation systems. However, the software has been primarily tested on the following models running the **64bit version** of Raspberry Pi OS:
+
+- Raspberry Pi 5
 - Raspberry Pi 4
-- Raspberry Pi Zero W (with performance considerations)
 
 ## Prerequisites
 
 Before installing, ensure you have the following dependencies installed:
 
-### System Dependencies
+- [Python](https://python.org) 3.11+ (with dev tools)
+- bluez (for other platforms see the [bleson](https://github.com/TheCellule/python-bleson) documentation for support BLE backends)
+- [Poetry](https://python-poetry.org) (v1.8) **currently not compatible with v2 or higher**
+- *[optional]* vim
+
+### Install System Dependencies
 
 ```bash
 # Update package lists
@@ -31,9 +36,9 @@ sudo apt install bluetooth bluez libbluetooth-dev
 sudo apt install build-essential git vim
 ```
 
-### Poetry Installation
+### Install Poetry
 
-This project uses Poetry for dependency management. Install it using the official installer:
+This project uses Poetry for dependency management. [Install](https://python-poetry.org/docs/#installation) it using the official installer:
 
 ```bash
 # Install Poetry to /usr/local/bin (it adds the "/bin")
@@ -53,139 +58,51 @@ poetry self update 1.8.5
 
 The Kegtron API Proxy supports two deployment configurations:
 
-### 1. Default Mode (Single Service)
-
-**Recommended**
+### 1. Default Mode (Single Service) **[Recommended]**
 
 In this mode, both the API and scanner run as a single systemd service:
+
 - ✅ Simplest setup and maintenance
 - ✅ Scanner writes directly to the SQLite database
 - ✅ Lower resource usage
 
 **Architecture:**
 
-```
-
-[Kegtron Device] --BLE--> [Scanner] --DB--> [SQLite] <--DB-- [API] <-- [Web UI/Clients]
-                          └─────────── Single Service ──────────┘
-└─────────────────────────────────── Raspberry Pi ─────────────────────────────────────┘
-
-```
+![Architecture](../docs/img/architecture.png)
 
 ### 2. Split Mode (Separate Services)
 
 In this mode, the scanner and API run as separate services:
+
 - ✅ More complex setup and maintenance
-- ✅ API can run on a more powerful server
+- ✅ Scanner communicates to the API
 - ✅ Higher resource utilization but better performance for each service
+- ✅ Logs for each service can be independently monitored
 
 **Architecture:**
 
-```
-
-[Kegtron Device] --BLE--> [Scanner Service] --HTTP--> [API Service] <-- [Web UI/Clients]
-└─────────── Scanner Service ─────────────┘           └────────── API Service ─────────┘
-└─────────────────────────────────── Raspberry Pi ─────────────────────────────────────┘
-
-```
+![Architecture](../docs/img/architecture-split.png)
 
 ## Installation
 
-### Step 1: Clone the Repository
+Follow the guides for your specific deployment mode:
 
-```bash
-# Clone to the target directory
-sudo mkdir /opt/kegtron-gen1-api-proxy
-sudo chown $(id -u -n):$(id -u -n) /opt/kegtron-gen1-api-proxy
-git clone https://github.com/yourusername/kegtron-gen1-api-proxy.git /opt/kegtron-gen1-api-proxy
-cd /opt/kegtron-gen1-api-proxy
-```
+- [Default Mode](./default/INSTALL.md)
+- [Split Mode](./split/INSTALL.md)
 
-### Step 2: Install Python Dependencies
+Once install you can view the up at: `http://<host ip or hostname>:8080`.
 
-```bash
-# Install project dependencies using Poetry
-cd /opt/kegtron-gen1-api-proxy
-poetry install --no-dev --no-root
-```
-
-### Step 3: Run Installation Script
-
-For **Default Mode**:
-
-```bash
-cd /opt/kegtron-gen1-api-proxy/deploy/default
-sudo ./install.sh
-```
-
-For **Split Mode** installation:
-
-```bash
-cd /opt/kegtron-gen1-api-proxy/deploy/split
-sudo ./install.sh
-```
-
-### Step 4: Configure Environment Variables
-
-Edit the environment file to match your setup:
-
-```bash
-sudo vim deploy/kegtron.env
-```
-
-**Important variables to configure:**
-
-- `KEGTRON_PROXY_APP_SECRET_KEY` - Change this to a secure random string
-- `KEGTRON_PROXY_AUTH_INITIAL_USER_EMAIL` - set to your email
-- `KEGTRON_PROXY_AUTH_INITIAL_USER_PASSWORD` = set an initial password.  You will be able to change this on the profile page later
-- `KEGTRON_PROXY_API_COOKIES_SECURE` - **IMPORTANT**: Set to `false` when running over HTTP (default port 8080). Set to `true` only when using HTTPS/SSL
-- **[Split mode only]**`KEGTRON_PROXY_SCANNER_SERVICE_ACCOUNT_API_KEY` A api key that will be used by the API and scanner.  This will be created when then service starts up
-
-### Step 6: Start the Service
-
-```bash
-# Enable service to start on boot
-sudo systemctl enable kegtron-api
-
-# Start the service
-sudo systemctl start kegtron-api
-
-# Check status
-sudo systemctl status kegtron-api
-
-# View logs
-sudo journalctl -u kegtron-api -f
-```
-
-**For Split mode also do the following**
-
-```bash
-# Enable scanner service to start on boot
-sudo systemctl enable kegtron-scanner
-
-# Start the scanner service
-sudo systemctl start kegtron-scanner
-
-# View logs for both services
-journalctl -u kegtron-api -u kegtron-scanner -f
-```
-
-Default login uses the admin credentials created during installation.
-
-## Bluetooth Permissions
-
-The scanner requires Bluetooth permissions. The service runs as the `kegtron` user, which needs to be in the `bluetooth` group:
-
-```bash
-sudo usermod -a -G bluetooth kegtron
-```
+*To change your initial admin user password that was setup during installation, you can do so from the `http://<host ip or hostname>:8080/profile.html` page*
 
 ## Updating
 
-To update to the latest in main or a different branch/tag.  make sure to check the release notes for any changes to the configuration
+To update to the latest in main or to a different branch/tag. \
+*Make sure to check the release notes for any changes to the configuration*
 
 ``` bash
+# stop the service(s)
 sudo systemctl stop kegtron-api
+# sudo systemctl stop kegtron-api kegtron-scanner
 
 cd /opt/kegtron-gen1-api-proxy
 
@@ -195,68 +112,14 @@ git pull
 
 git checkout <branch|tag>
 
+# make sure all files are readable by the kegtron group
 sudo chown -R :kegtron /opt/kegtron-gen1-api-proxy
 
 poetry update
 
+#restart the service(s)
 sudo systemctl start kegtron-api
+# sudo systemctl stop kegtron-api kegtron-scanner
 ```
 
-## Troubleshooting
-
-### Service won't start
-
-```bash
-# Check logs for errors
-sudo journalctl -u kegtron-api -n 50
-
-# Verify permissions
-sudo chown -R :kegtron /opt/kegtron-gen1-api-proxy
-
-# Test manually
-sudo -u kegtron /opt/kegtron-gen1-api-proxy/entrypoint.sh
-```
-
-### Bluetooth scanner not finding devices
-
-```bash
-# Check Bluetooth service
-sudo systemctl status bluetooth
-
-# Restart Bluetooth
-sudo systemctl restart bluetooth
-
-# Scan manually
-sudo hcitool lescan
-```
-
-### Permission denied errors
-
-```bash
-# Ensure kegtron user has necessary permissions
-sudo usermod -a -G bluetooth kegtron
-sudo setcap 'cap_net_raw,cap_net_admin+eip' $(which python3)
-```
-
-## Uninstallation
-
-To remove the service:
-
-```bash
-# Stop and disable service
-sudo systemctl stop kegtron-api
-sudo systemctl disable kegtron-api
-
-sudo systemctl stop kegtron-scanner
-sudo systemctl disable kegtron-scanner
-
-# Remove service file
-sudo rm /etc/systemd/system/kegtron-api.service
-sudo rm /etc/systemd/system/kegtron-scanner.service
-
-# Reload systemd
-sudo systemctl daemon-reload
-
-# Optionally remove application files
-sudo rm -rf /opt/kegtron-gen1-api-proxy
-```
+**If you are running into issues getting the service up and running, first checkout our [troubleshooting guide](./TROUBLESHOOTING.md)**

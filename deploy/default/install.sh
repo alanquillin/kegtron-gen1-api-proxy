@@ -29,6 +29,7 @@ fi
 
 usermod -aG "$GROUP_NAME" "$SVC_USER_NAME"
 usermod -aG "$GROUP_NAME" "$CURRENT_USER"
+usermod -a -G bluetooth "$SVC_USER_NAME"
 
 # Copy service file to systemd directory
 echo "Installing systemd service..."
