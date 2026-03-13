@@ -11,7 +11,7 @@
     "api.cookies.http_only": "bool",
     "auth.initial_user.set_password": "bool",
     "auth.oidc.google.enabled": "bool",
-    "scanner.enabled": "bool"
+    "proxy.scanner.enabled": "bool"
   },
   "api": {
     "host": "localhost",
@@ -27,8 +27,7 @@
     "initial_user": {
       "email": "default_admin@acme.fake",
       "password": "initial_password",
-      "set_password": true,
-      "api_key": "dda7aed5-a505-40ab-a41f-1eef7832336c"
+      "set_password": true
     }
   },
   "db": {
@@ -51,12 +50,14 @@
     "host": "localhost",
     "port": 8080,
     "scheme": "http",
-    "enabled": false
+    "enabled": false,
+    "scanner": {
+      "enabled": true
+    }
   },
   "default_display_unit": "gal",
   "scanner": {
     "backend": "db",
-    "force_device_update_after_sec": 300,
-    "enabled": true
+    "force_device_update_after_sec": 300
   }
 }

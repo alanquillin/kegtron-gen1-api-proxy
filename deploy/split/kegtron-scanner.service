@@ -1,0 +1,17 @@
+[Unit]
+Description=Kegtron Gen1 API Proxy
+After=network.target
+
+[Service]
+Type=simple
+User=kegtron
+Group=kegtron
+WorkingDirectory=/opt/kegtron-gen1-api-proxy
+ExecStart=/opt/kegtron-gen1-api-proxy/entrypoint.sh
+Restart=on-failure
+RestartSec=10
+Environment="KEGTRON_PROXY_ROLE=scanner"
+EnvironmentFile=/opt/kegtron-gen1-api-proxy/deploy/kegtron.env
+
+[Install]
+WantedBy=multi-user.target
