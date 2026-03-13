@@ -6,7 +6,7 @@ This guide explains how to deploy the Kegtron Gen1 API Proxy on a Raspberry Pi u
 
 This software is **designed and optimized for Raspberry Pi** running Raspberry Pi OS (Debian-based). However it should be compatible with any modern OS that support BLE (Bluetooth Low Energy). The Bluetooth scanning functionality requires a Bluetooth adapter that supports BLE, which is built into Raspberry Pi 3+ models.
 
-**Note for other platforms:** Both the scanner and API backend using the [bleson](https://github.com/TheCellule/python-bleson) package for BLE communication.  This package is compatible with most modern operation systems. However, the software has been primarily tested on the following models running the **64bit version** of Raspberry Pi OS:
+**Note for other platforms:** Both the scanner and API backend using the [bleak](https://github.com/hbldh/bleak) package for BLE communication.  This package is compatible with most modern operation systems. However, the software has been primarily tested on the following models running the **64bit version** of Raspberry Pi OS:
 
 - Raspberry Pi 5
 - Raspberry Pi 4
@@ -16,7 +16,7 @@ This software is **designed and optimized for Raspberry Pi** running Raspberry P
 Before installing, ensure you have the following dependencies installed:
 
 - [Python](https://python.org) 3.11+ (with dev tools)
-- bluez (for other platforms see the [bleson](https://github.com/TheCellule/python-bleson) documentation for support BLE backends)
+- bluez (for other platforms see the [bleak](https://github.com/hbldh/bleak) documentation for support BLE backends)
 - [Poetry](https://python-poetry.org) (v1.8) **currently not compatible with v2 or higher**
 - *[optional]* vim
 
