@@ -2,7 +2,7 @@
 set -e
 
 if [ "${KEGTRON_PROXY_ROLE}" = "scanner" ]; then
-    poetry run python scan.py
+    poetry run python src/scan.py
 fi
 
 if [ "${KEGTRON_PROXY_ROLE}" = "api" ]; then

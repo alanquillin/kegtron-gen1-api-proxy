@@ -1,6 +1,8 @@
 #!/bin/bash
 
-# Installation script for Kegtron API systemd service
+# Installation script for Kegtron API and Scanner systemd services
+
+set -e
 
 SVC_USER_NAME="kegtron"
 GROUP_NAME="kegtron"
