@@ -164,19 +164,19 @@
                             </div>
 
                             <div class="command-group">
-                                <h5>New Keg</h5>
+                                <h5>Reset Volume Dispensed</h5>
                                 <form id="newKegForm">
                                     <div class="mb-3">
-                                        <label for="kegSize" class="form-label">Keg Size (mL)</label>
-                                        <input type="number" class="form-control" id="kegSize" placeholder="e.g., 18927" min="0" step="1" style="max-width: 200px;">
-                                        <small class="form-text text-muted">Enter size in milliliters</small>
+                                        <label for="kegSize" class="form-label" id="kegSizeLabel">Keg Size</label>
+                                        <input type="number" class="form-control" id="kegSize" placeholder="e.g., 5.0" min="0" step="0.1" style="max-width: 200px;">
+                                        <small class="form-text text-muted" id="kegSizeHelp">Enter keg size</small>
                                     </div>
                                     <div class="mb-3">
-                                        <label for="startVolume" class="form-label">Start Volume (mL)</label>
-                                        <input type="number" class="form-control" id="startVolume" placeholder="Leave empty for full keg" min="0" step="1" style="max-width: 200px;">
+                                        <label for="startVolume" class="form-label" id="startVolumeLabel">Start Volume</label>
+                                        <input type="number" class="form-control" id="startVolume" placeholder="Leave empty for full keg" min="0" step="0.1" style="max-width: 200px;">
                                         <small class="form-text text-muted">Optional - defaults to keg size</small>
                                     </div>
-                                    <button type="submit" class="btn btn-primary btn-sm">Start New Keg</button>
+                                    <button type="submit" class="btn btn-primary btn-sm">Reset</button>
                                     <div class="alert alert-warning mt-2">
                                         <small><strong>Note:</strong> This will reset the volume counter</small>
                                     </div>
@@ -214,6 +214,12 @@
         let selectedDevice = null;
         let selectedPort = null;
         let currentUser = null;
+
+        function roundToDecimalPlaces(num, precision) {
+            num = parseFloat(num);
+            const factor = Math.pow(10, precision);
+            return Math.round(num * factor) / factor;
+        }
 
         // Check authentication and redirect if needed
         function checkAuthentication() {
@@ -347,6 +353,7 @@
                         $('#displayUnit').val(selectedPort.displayUnit || 'ml');
                         $('#portLabel').val(selectedPort.portName || '');
                         updateCurrentStatus();
+                        updateResetVolumeForm();
                     }
                 })
                 .catch(error => {
@@ -355,52 +362,6 @@
                 });
         }
 
-        // Convert volume from mL to the specified unit
-        function convertVolume(volumeMl, unit) {
-            if (!unit || unit.toLowerCase() === 'ml') return volumeMl;
-            
-            const unitLower = unit.toLowerCase();
-            switch(unitLower) {
-                case 'oz':
-                    return volumeMl * 0.033814;  // 1 mL = 0.033814 fl oz
-                case 'l':
-                    return volumeMl / 1000;       // 1 L = 1000 mL
-                case 'gal':
-                    return volumeMl * 0.000264172; // 1 mL = 0.000264172 gallons
-                case 'pnt':
-                    return volumeMl * 0.00211338;  // 1 mL = 0.00211338 pints
-                default:
-                    return volumeMl;
-            }
-        }
-        
-        // Format volume with appropriate decimal places based on unit
-        function formatVolume(volumeMl, unit) {
-            if (!volumeMl && volumeMl !== 0) return '0';
-            
-            const converted = convertVolume(volumeMl, unit);
-            const unitLower = (unit || 'ml').toLowerCase();
-            
-            let decimals = 1;
-            switch(unitLower) {
-                case 'ml':
-                    decimals = 0;
-                    break;
-                case 'oz':
-                case 'pnt':
-                    decimals = 1;
-                    break;
-                case 'l':
-                    decimals = 2;
-                    break;
-                case 'gal':
-                    decimals = 3;
-                    break;
-            }
-            
-            return converted.toFixed(decimals);
-        }
-        
         // Get the display label for the unit
         function getUnitLabel(unit) {
             if (!unit) return 'mL';
@@ -431,20 +392,74 @@
             
             if (selectedPort.kegSize > 0) {
                 statusHtml += `
-                    <div class="mb-2"><strong>Keg Size:</strong> ${formatVolume(selectedPort.kegSize, displayUnit)} ${unitLabel}</div>
-                    <div class="mb-2"><strong>Start Volume:</strong> ${formatVolume(selectedPort.startVolume, displayUnit)} ${unitLabel}</div>
-                    <div class="mb-2"><strong>Volume Dispensed:</strong> ${formatVolume(selectedPort.volumeDispensed, displayUnit)} ${unitLabel}</div>
-                    <div class="mb-2"><strong>Volume Left:</strong> ${formatVolume(volumeLeft, displayUnit)} ${unitLabel} (${percentLeft}%)</div>
+                    <div class="mb-2"><strong>Keg Size:</strong> ${selectedPort.kegSize} ${unitLabel}</div>
+                    <div class="mb-2"><strong>Start Volume:</strong> ${selectedPort.startVolume} ${unitLabel}</div>
+                    <div class="mb-2"><strong>Volume Dispensed:</strong> ${selectedPort.volumeDispensed} ${unitLabel}</div>
+                    <div class="mb-2"><strong>Volume Left:</strong> ${volumeLeft} ${unitLabel} (${percentLeft}%)</div>
                 `;
                 
                 if (selectedPort.lastPour > 0) {
-                    statusHtml += `<div class="mb-2"><strong>Last Pour:</strong> ${formatVolume(selectedPort.lastPour, displayUnit)} ${unitLabel}</div>`;
+                    statusHtml += `<div class="mb-2"><strong>Last Pour:</strong> ${selectedPort.lastPour} ${unitLabel}</div>`;
                 }
             } else {
                 statusHtml += `<div class="mb-2 text-muted">No keg configured</div>`;
             }
             
             $('#currentStatus').html(statusHtml);
+        }
+        
+        function updateResetVolumeForm() {
+            if (!selectedPort) return;
+            
+            const displayUnit = selectedPort.displayUnit || 'ml';
+            const unitLabel = getUnitLabel(displayUnit);
+            
+            // Update labels with unit
+            $('#kegSizeLabel').text(`Keg Size (${unitLabel})`);
+            $('#startVolumeLabel').text(`Start Volume (${unitLabel})`);
+            $('#kegSizeHelp').text(`Enter keg size in ${unitLabel}`);
+            
+            // Set step value based on unit for better UX
+            let step = 0.1;
+            if (displayUnit.toLowerCase() === 'ml') {
+                step = 1;
+            }
+            $('#kegSize').attr('step', step);
+            $('#startVolume').attr('step', step);
+            
+            // Populate with current values if they exist
+            if (selectedPort.kegSize > 0) {
+                let currentKegSize = selectedPort.kegSize;
+                let currentStartVolume = selectedPort.startVolume;
+                if (displayUnit.toLowerCase() !== 'ml') {
+                    currentKegSize = roundToDecimalPlaces(currentKegSize, 2);
+                    currentStartVolume = roundToDecimalPlaces(currentStartVolume, 2);
+                }
+                $('#kegSize').val(currentKegSize);
+                $('#startVolume').val(currentStartVolume);
+                
+                // Update placeholder to show example based on current unit
+                $('#kegSize').attr('placeholder', `Current: ${currentKegSize}`);
+                $('#startVolume').attr('placeholder', `Current: ${currentStartVolume}`);
+            } else {
+                // Clear values and set example placeholders
+                $('#kegSize').val('');
+                $('#startVolume').val('');
+                
+                // Set example placeholders based on unit
+                let exampleSize = '18927';
+                if (displayUnit.toLowerCase() === 'gal') {
+                    exampleSize = '4.99';
+                } else if (displayUnit.toLowerCase() === 'oz') {
+                    exampleSize = '639.99';
+                } else if (displayUnit.toLowerCase() === 'l') {
+                    exampleSize = '18.927';
+                } else if (displayUnit.toLowerCase() === 'pnt') {
+                    exampleSize = '39.99';
+                }
+                $('#kegSize').attr('placeholder', `e.g., ${exampleSize}`);
+                $('#startVolume').attr('placeholder', 'Leave empty for full keg');
+            }
         }
 
         function handleDeviceDetailsSave(e) {
@@ -482,6 +497,11 @@
             if (!selectedDevice || !selectedPort) return;
             
             const displayUnit = $('#displayUnit').val();
+            
+            // Update the selectedPort's display unit immediately for UI updates
+            selectedPort.displayUnit = displayUnit;
+            updateResetVolumeForm();
+            updateCurrentStatus();
             
             sendPortCommand('display_unit', { display_unit: displayUnit });
         }
