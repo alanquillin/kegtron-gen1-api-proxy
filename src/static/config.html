@@ -254,8 +254,11 @@
             // Check for device_id in URL parameters
             const urlParams = new URLSearchParams(window.location.search);
             const deviceId = urlParams.get('device_id');
-            
-            loadDevices(deviceId);
+            // Check for both Port_index and port_index (case variations)
+            let portIndex = urlParams.get('Port_index') || urlParams.get('port_index');
+            portIndex = portIndex !== null ? parseInt(portIndex) : null;
+
+            loadDevices(deviceId, portIndex);
             
             // Set up form handlers
             $('#devicePortSelector').on('change', handleDevicePortSelection);
@@ -265,7 +268,7 @@
             $('#newKegForm').on('submit', handleNewKegCommand);
         }
 
-        function loadDevices(preselectedDeviceId) {
+        function loadDevices(preselectedDeviceId, preselectedPortIndex) {
             fetch('/api/v1/devices')
                 .then(response => response.json())
                 .then(devices => {
@@ -284,9 +287,15 @@
                                     option.textContent = `${device.id} - ${portName}`;
                                     selector.appendChild(option);
                                     
-                                    // Pre-select if device_id matches
-                                    if (preselectedDeviceId === device.id && port.portIndex === 0) {
-                                        option.selected = true;
+                                    // Pre-select if device_id and port_index match
+                                    if (preselectedDeviceId === device.id && 
+                                        (preselectedPortIndex === null || preselectedPortIndex === port.portIndex)) {
+                                        // If no port index specified, select first port; otherwise select matching port
+                                        if (preselectedPortIndex === null && port.portIndex === 0) {
+                                            option.selected = true;
+                                        } else if (preselectedPortIndex === port.portIndex) {
+                                            option.selected = true;
+                                        }
                                     }
                                 }
                             });

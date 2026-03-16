@@ -188,7 +188,7 @@
 
             // Only show settings icon if user is logged in
             const settingsIcon = userIsLoggedIn ? 
-                `<a href="/config.html?device_id=${deviceId}" class="settings-icon" title="Configure Device">
+                `<a href="/config.html?device_id=${deviceId}&port_index=${portIndex}" class="settings-icon" title="Configure Device">
                     <span class="material-icons">settings</span>
                 </a>` : '';
             
