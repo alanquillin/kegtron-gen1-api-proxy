@@ -140,9 +140,9 @@
                                     <div class="mb-3">
                                         <label for="displayUnit" class="form-label">Display Unit</label>
                                         <select class="form-select" id="displayUnit" style="max-width: 200px;">
-                                            <option value="ml">Milliliters (mL)</option>
+                                            <option value="mL">Milliliters (mL)</option>
                                             <option value="oz">Fluid Ounces (oz)</option>
-                                            <option value="l">Liters (L)</option>
+                                            <option value="L">Liters (L)</option>
                                             <option value="gal">Gallons (gal)</option>
                                             <option value="pnt">Pints (pnt)</option>
                                         </select>
@@ -153,10 +153,10 @@
                             </div>
 
                             <div class="command-group">
-                                <h5>Set Beer/Keg Name</h5>
-                                <form id="beerNameForm">
+                                <h5>Set Port Name/Label</h5>
+                                <form id="portLabelForm">
                                     <div class="mb-3">
-                                        <input type="text" class="form-control" id="beerName" placeholder="Enter beer/keg name" style="max-width: 250px;">
+                                        <input type="text" class="form-control" id="portLabel" placeholder="Enter beer/keg name" style="max-width: 250px;">
                                         <small class="form-text text-muted">Custom name for this port</small>
                                     </div>
                                     <button type="submit" class="btn btn-primary btn-sm">Set Name</button>
@@ -264,7 +264,7 @@
             $('#devicePortSelector').on('change', handleDevicePortSelection);
             $('#deviceDetailsForm').on('submit', handleDeviceDetailsSave);
             $('#displayUnitForm').on('submit', handleDisplayUnitCommand);
-            $('#beerNameForm').on('submit', handleBeerNameCommand);
+            $('#portLabelForm').on('submit', handlePortLabelCommand);
             $('#newKegForm').on('submit', handleNewKegCommand);
         }
 
@@ -345,7 +345,7 @@
                     // Update port-specific fields
                     if (selectedPort) {
                         $('#displayUnit').val(selectedPort.displayUnit || 'ml');
-                        $('#beerName').val(selectedPort.portName || '');
+                        $('#portLabel').val(selectedPort.portName || '');
                         updateCurrentStatus();
                     }
                 })
@@ -355,28 +355,90 @@
                 });
         }
 
+        // Convert volume from mL to the specified unit
+        function convertVolume(volumeMl, unit) {
+            if (!unit || unit.toLowerCase() === 'ml') return volumeMl;
+            
+            const unitLower = unit.toLowerCase();
+            switch(unitLower) {
+                case 'oz':
+                    return volumeMl * 0.033814;  // 1 mL = 0.033814 fl oz
+                case 'l':
+                    return volumeMl / 1000;       // 1 L = 1000 mL
+                case 'gal':
+                    return volumeMl * 0.000264172; // 1 mL = 0.000264172 gallons
+                case 'pnt':
+                    return volumeMl * 0.00211338;  // 1 mL = 0.00211338 pints
+                default:
+                    return volumeMl;
+            }
+        }
+        
+        // Format volume with appropriate decimal places based on unit
+        function formatVolume(volumeMl, unit) {
+            if (!volumeMl && volumeMl !== 0) return '0';
+            
+            const converted = convertVolume(volumeMl, unit);
+            const unitLower = (unit || 'ml').toLowerCase();
+            
+            let decimals = 1;
+            switch(unitLower) {
+                case 'ml':
+                    decimals = 0;
+                    break;
+                case 'oz':
+                case 'pnt':
+                    decimals = 1;
+                    break;
+                case 'l':
+                    decimals = 2;
+                    break;
+                case 'gal':
+                    decimals = 3;
+                    break;
+            }
+            
+            return converted.toFixed(decimals);
+        }
+        
+        // Get the display label for the unit
+        function getUnitLabel(unit) {
+            if (!unit) return 'mL';
+            
+            const unitLower = unit.toLowerCase();
+            switch(unitLower) {
+                case 'ml': return 'mL';
+                case 'oz': return 'oz';
+                case 'l': return 'L';
+                case 'gal': return 'gal';
+                case 'pnt': return 'pnt';
+                default: return unit;
+            }
+        }
+
         function updateCurrentStatus() {
             if (!selectedPort) return;
             
             const volumeLeft = selectedPort.startVolume - selectedPort.volumeDispensed;
             const percentLeft = selectedPort.kegSize > 0 ? ((volumeLeft / selectedPort.kegSize) * 100).toFixed(1) : 0;
-            const displayUnit = selectedPort.displayUnit || 'mL';
+            const displayUnit = selectedPort.displayUnit || 'ml';
+            const unitLabel = getUnitLabel(displayUnit);
             
             let statusHtml = `
                 <div class="mb-2"><strong>Port Name:</strong> ${selectedPort.portName || 'Not set'}</div>
-                <div class="mb-2"><strong>Display Unit:</strong> ${displayUnit}</div>
+                <div class="mb-2"><strong>Display Unit:</strong> ${unitLabel}</div>
             `;
             
             if (selectedPort.kegSize > 0) {
                 statusHtml += `
-                    <div class="mb-2"><strong>Keg Size:</strong> ${selectedPort.kegSize} mL</div>
-                    <div class="mb-2"><strong>Start Volume:</strong> ${selectedPort.startVolume} mL</div>
-                    <div class="mb-2"><strong>Volume Dispensed:</strong> ${selectedPort.volumeDispensed.toFixed(1)} mL</div>
-                    <div class="mb-2"><strong>Volume Left:</strong> ${volumeLeft.toFixed(1)} mL (${percentLeft}%)</div>
+                    <div class="mb-2"><strong>Keg Size:</strong> ${formatVolume(selectedPort.kegSize, displayUnit)} ${unitLabel}</div>
+                    <div class="mb-2"><strong>Start Volume:</strong> ${formatVolume(selectedPort.startVolume, displayUnit)} ${unitLabel}</div>
+                    <div class="mb-2"><strong>Volume Dispensed:</strong> ${formatVolume(selectedPort.volumeDispensed, displayUnit)} ${unitLabel}</div>
+                    <div class="mb-2"><strong>Volume Left:</strong> ${formatVolume(volumeLeft, displayUnit)} ${unitLabel} (${percentLeft}%)</div>
                 `;
                 
                 if (selectedPort.lastPour > 0) {
-                    statusHtml += `<div class="mb-2"><strong>Last Pour:</strong> ${selectedPort.lastPour.toFixed(1)} mL</div>`;
+                    statusHtml += `<div class="mb-2"><strong>Last Pour:</strong> ${formatVolume(selectedPort.lastPour, displayUnit)} ${unitLabel}</div>`;
                 }
             } else {
                 statusHtml += `<div class="mb-2 text-muted">No keg configured</div>`;
@@ -424,19 +486,19 @@
             sendPortCommand('display_unit', { display_unit: displayUnit });
         }
 
-        function handleBeerNameCommand(e) {
+        function handlePortLabelCommand(e) {
             e.preventDefault();
             
             if (!selectedDevice || !selectedPort) return;
             
-            const beerName = $('#beerName').val();
+            const portLabel = $('#portLabel').val();
             
-            if (!beerName) {
+            if (!portLabel) {
                 showCommandResponse('Please enter a beer/keg name', 'warning');
                 return;
             }
             
-            sendPortCommand('beer_name', { beer_name: beerName });
+            sendPortCommand('Kengtron.SetPortName', { name: portLabel });
         }
 
         function handleNewKegCommand(e) {
@@ -444,8 +506,8 @@
             
             if (!selectedDevice || !selectedPort) return;
             
-            const kegSize = parseInt($('#kegSize').val());
-            const startVolume = $('#startVolume').val() ? parseInt($('#startVolume').val()) : null;
+            const kegSize = parseFloat($('#kegSize').val());
+            const startVolume = $('#startVolume').val() ? parseFloat($('#startVolume').val()) : null;
             
             if (!kegSize || kegSize <= 0) {
                 showCommandResponse('Please enter a valid keg size', 'warning');
@@ -456,25 +518,26 @@
                 showCommandResponse('Start volume cannot be greater than keg size', 'warning');
                 return;
             }
-            
-            const params = { keg_size: kegSize };
-            if (startVolume !== null) {
-                params.start_volume = startVolume;
+
+            if (startVolume === null) {
+                startVolume = kegSize;
             }
             
-            sendPortCommand('new_keg', params);
+            const params = { 
+                keg_size: kegSize ,
+                start_volume: startVolume,
+                unit: selectedPort.displayUnit
+            };
+            
+            sendPortCommand('Kegtron.ResetVolume', params);
         }
 
         function sendPortCommand(command, params) {
             if (!selectedDevice || selectedPort === null) return;
             
-            const requestData = {
-                command: command,
-                port_index: selectedPort.portIndex,
-                ...params
-            };
+            const requestData = {...params};
             
-            fetch(`/api/v1/devices/${selectedDevice.id}/command`, {
+            fetch(`/api/v1/devices/${selectedDevice.id}/port/${selectedPort.portIndex}/rpc/${command}`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'

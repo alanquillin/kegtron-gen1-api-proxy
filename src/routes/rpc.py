@@ -10,13 +10,13 @@ from kegtron import gatt
 from lib import logging
 from lib.config import Config
 from lib.units import to_ml
-from schemas.rpc import ResetVolumeRequest
+from schemas.rpc import ResetVolumeRequest, SetPortNameRequest, SetKegSizeRequest, SetStartVolumeRequest
 
 LOGGER = logging.getLogger(__name__)
 CONFIG = Config()
 
 
-router_ports = APIRouter(prefix="/api/v1/devices/{device_id}/port/{port_index}/rpc")
+router_ports = APIRouter(prefix="/api/v1/devices/{device_id}/ports/{port_index}/rpc")
 router_devices = APIRouter(prefix="/api/v1/devices/{device_id}/rpc")
 
 
@@ -94,8 +94,97 @@ async def reset_volume_rpc(
         updates["start_volume"] = start_volume_ml
         u_data[volume_key] = gatt.to_bytearray(start_volume_ml, 2)
 
-    LOGGER.debug("attempting to write data to device: %s", u_data)
-    await gatt.unlock(device, port_index)
+    # LOGGER.debug("attempting to write data to device: %s", u_data)
+    # await gatt.unlock(device, port_index)
+    LOGGER.debug("attempting to write data to device %s, data: %s", device_id, u_data)
+    await gatt.write_chars(device, u_data)
+    LOGGER.debug("done writing to device %s", device_id)
+
+    LOGGER.debug("Updating port DB data on device %s on port %s, data: %s", device_id, port_index, updates)
+    await port.update(db, **updates)
+
+    return {"success": True}
+
+
+@router_ports.post("/Kegtron.SetPortName")
+async def set_port_name_rpc(device_id: str, port_index: int, request: SetPortNameRequest, db: AsyncSession = Depends(get_async_db), current_user: AuthUser = Depends(require_user)):
+    raise HTTPException(status_code=405, detail="Method not yet implemented")
+    # device = await deviceDB.get(device_id, db)
+    # if not device:
+    #     raise HTTPException(status_code=404, detail=f"Unknown device with id {device_id}")
+
+    # port = await portDB.get_by_device_id_and_index(device_id, port_index, db)
+    # if not port:
+    #     raise HTTPException(status_code=404, detail=f"Port with index {port_index} for device {device_id} not found")
+
+
+@router_ports.post("/Kegtron.SetKegSize")
+async def set_keg_size_rpc(device_id: str, port_index: int, request: SetKegSizeRequest, db: AsyncSession = Depends(get_async_db), current_user: AuthUser = Depends(require_user)):
+    device = await deviceDB.get(device_id, db)
+    if not device:
+        raise HTTPException(status_code=404, detail=f"Unknown device with id {device_id}")
+
+    port_cnt = device.port_cnt
+    if port_index >= port_cnt:
+        raise HTTPException(status_code=400, detail="port value is required but not supplied.")
+
+    port = await portDB.get_by_device_id_and_index(device_id, port_index, db)
+    if not port:
+        raise HTTPException(status_code=404, detail=f"Port with index {port_index} for device {device_id} not found")
+
+    updates = {"keg_size": request.keg_size}
+    u_data: dict[int, bytearray] = {}
+    size_key = kegtron.CHAR_XGATT0_VOL_SIZE_HANDLE
+    if port_index == 1:
+        size_key = kegtron.CHAR_XGATT1_VOL_SIZE_HANDLE
+
+    unit = request.unit
+    if not unit:
+        unit = "mL"
+
+    keg_size_ml = to_ml(request.keg_size, unit)
+    u_data[size_key] = gatt.to_bytearray(keg_size_ml, 2)
+
+    # LOGGER.debug("attempting to write data to device: %s", u_data)
+    # await gatt.unlock(device, port_index)
+    LOGGER.debug("attempting to write data to device %s, data: %s", device_id, u_data)
+    await gatt.write_chars(device, u_data)
+    LOGGER.debug("done writing to device %s", device_id)
+
+    LOGGER.debug("Updating port DB data on device %s on port %s, data: %s", device_id, port_index, updates)
+    await port.update(db, **updates)
+
+    return {"success": True}
+
+@router_ports.post("/Kegtron.SetStartVolume")
+async def set_start_volume_rpc(device_id: str, port_index: int, request: SetStartVolumeRequest, db: AsyncSession = Depends(get_async_db), current_user: AuthUser = Depends(require_user)):
+    device = await deviceDB.get(device_id, db)
+    if not device:
+        raise HTTPException(status_code=404, detail=f"Unknown device with id {device_id}")
+
+    port_cnt = device.port_cnt
+    if port_index >= port_cnt:
+        raise HTTPException(status_code=400, detail="port value is required but not supplied.")
+
+    port = await portDB.get_by_device_id_and_index(device_id, port_index, db)
+    if not port:
+        raise HTTPException(status_code=404, detail=f"Port with index {port_index} for device {device_id} not found")
+
+    updates = {"start_volume": request.start_volume}
+    u_data: dict[int, bytearray] = {}
+    key = kegtron.CHAR_XGATT0_VOL_START_HANDLE
+    if port_index == 1:
+        key = kegtron.CHAR_XGATT1_VOL_START_HANDLE
+
+    unit = request.unit
+    if not unit:
+        unit = "mL"
+
+    start_volume_ml = to_ml(request.start_volume, unit)
+    u_data[key] = gatt.to_bytearray(start_volume_ml, 2)
+
+    # LOGGER.debug("attempting to write data to device: %s", u_data)
+    # await gatt.unlock(device, port_index)
     LOGGER.debug("attempting to write data to device %s, data: %s", device_id, u_data)
     await gatt.write_chars(device, u_data)
     LOGGER.debug("done writing to device %s", device_id)
