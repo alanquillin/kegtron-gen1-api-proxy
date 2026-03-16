@@ -162,7 +162,7 @@
             }
             
             const portName = port.portName || `Port ${portIndex + 1}`;
-            const lastReading = device.lastReading ? formatDateTime(device.lastReading) : 'Never';
+            const lastReading = device.lastAdvertisementTimestampUtc ? formatDateTime(device.lastAdvertisementTimestampUtc) : 'Never';
             
             // Check if card was previously expanded
             const cardId = `${deviceId}-${portIndex}`;
