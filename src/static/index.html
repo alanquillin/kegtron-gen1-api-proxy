@@ -119,16 +119,32 @@
     </div>
 
     <script>
+        function parseUtcDate(isoString) {
+            if (!isoString.endsWith('Z') && !isoString.includes('+') && !isoString.includes('-', 10)) {
+                isoString += 'Z';
+            }
+            return new Date(isoString);
+        }
+
         function formatDateTime(isoString) {
             if (!isoString) return 'Never';
-            const date = new Date(isoString);
+            const date = parseUtcDate(isoString);
             const month = (date.getMonth() + 1).toString().padStart(2, '0');
             const day = date.getDate().toString().padStart(2, '0');
             const year = date.getFullYear();
-            const hours = date.getHours().toString().padStart(2, '0');
+            const h = date.getHours();
+            const ampm = h >= 12 ? 'PM' : 'AM';
+            const hour12 = (h % 12 || 12).toString().padStart(2, '0');
             const minutes = date.getMinutes().toString().padStart(2, '0');
-            const seconds = date.getSeconds().toString().padStart(2, '0');
-            return `${month}/${day}/${year} ${hours}:${minutes}:${seconds}`;
+            return `${month}/${day}/${year} ${hour12}:${minutes} ${ampm}`;
+        }
+
+        function isStale(isoString) {
+            if (!isoString) return true;
+            const date = parseUtcDate(isoString);
+            const now = new Date();
+            const twoHoursMs = 2 * 60 * 60 * 1000;
+            return (now - date) > twoHoursMs;
         }
 
         function calculatePercentLeft(kegSize, volumeLeft) {
@@ -162,7 +178,9 @@
             }
             
             const portName = port.portName || `Port ${portIndex + 1}`;
-            const lastReading = device.lastAdvertisementTimestampUtc ? formatDateTime(device.lastAdvertisementTimestampUtc) : 'Never';
+            const lastAdvertisement = device.lastAdvertisementTimestampUtc;
+            const lastReading = lastAdvertisement ? formatDateTime(lastAdvertisement) : 'Never';
+            const lastReadingStale = isStale(lastAdvertisement);
             
             // Check if card was previously expanded
             const cardId = `${deviceId}-${portIndex}`;
@@ -228,7 +246,7 @@
                                     <span class="detail-value">${displayUnit}</span>
                                 </div>
                             </div>
-                            <div class="update-time">Last: ${lastReading}</div>
+                            <div class="update-time ${lastReadingStale ? 'stale' : 'fresh'}">Last: ${lastReading}</div>
                             <div class="details-toggle" onclick="toggleDetails('${cardId}')">
                                 <span id="toggle-text-${cardId}">${isExpanded ? 'Hide' : 'Show'} Details</span>
                             </div>
