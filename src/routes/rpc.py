@@ -94,8 +94,8 @@ async def reset_volume_rpc(
         updates["start_volume"] = start_volume_ml
         u_data[volume_key] = gatt.to_bytearray(start_volume_ml, 2)
 
-    # LOGGER.debug("attempting to write data to device: %s", u_data)
-    # await gatt.unlock(device, port_index)
+    LOGGER.debug("attempting to write data to device: %s", u_data)
+    await gatt.unlock(device, port_index)
     LOGGER.debug("attempting to write data to device %s, data: %s", device_id, u_data)
     await gatt.write_chars(device, u_data)
     LOGGER.debug("done writing to device %s", device_id)
@@ -145,8 +145,8 @@ async def set_keg_size_rpc(device_id: str, port_index: int, request: SetKegSizeR
     keg_size_ml = to_ml(request.keg_size, unit)
     u_data[size_key] = gatt.to_bytearray(keg_size_ml, 2)
 
-    # LOGGER.debug("attempting to write data to device: %s", u_data)
-    # await gatt.unlock(device, port_index)
+    LOGGER.debug("attempting to write data to device: %s", u_data)
+    await gatt.unlock(device, port_index)
     LOGGER.debug("attempting to write data to device %s, data: %s", device_id, u_data)
     await gatt.write_chars(device, u_data)
     LOGGER.debug("done writing to device %s", device_id)
@@ -183,8 +183,8 @@ async def set_start_volume_rpc(device_id: str, port_index: int, request: SetStar
     start_volume_ml = to_ml(request.start_volume, unit)
     u_data[key] = gatt.to_bytearray(start_volume_ml, 2)
 
-    # LOGGER.debug("attempting to write data to device: %s", u_data)
-    # await gatt.unlock(device, port_index)
+    LOGGER.debug("attempting to write data to device: %s", u_data)
+    await gatt.unlock(device, port_index)
     LOGGER.debug("attempting to write data to device %s, data: %s", device_id, u_data)
     await gatt.write_chars(device, u_data)
     LOGGER.debug("done writing to device %s", device_id)
