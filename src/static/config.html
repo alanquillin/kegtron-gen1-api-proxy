@@ -585,7 +585,7 @@
             
             const requestData = {...params};
             
-            fetch(`/api/v1/devices/${selectedDevice.id}/port/${selectedPort.portIndex}/rpc/${command}`, {
+            fetch(`/api/v1/devices/${selectedDevice.id}/ports/${selectedPort.portIndex}/rpc/${command}`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
