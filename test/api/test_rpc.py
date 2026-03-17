@@ -51,7 +51,7 @@ class TestRPCEndpoints:
         await async_db_session.commit()
         
         # Call unlock write for port 0
-        response = await client.post(f"/api/v1/devices/{device.id}/port/0/rpc/Kegtron.UnlockWrite")
+        response = await client.post(f"/api/v1/devices/{device.id}/ports/0/rpc/Kegtron.UnlockWrite")
         assert response.status_code == 200
         assert response.json() == {"success": True}
         
@@ -73,11 +73,11 @@ class TestRPCEndpoints:
         await async_db_session.commit()
         
         # Unlock port 0
-        response = await client.post(f"/api/v1/devices/{device.id}/port/0/rpc/Kegtron.UnlockWrite")
+        response = await client.post(f"/api/v1/devices/{device.id}/ports/0/rpc/Kegtron.UnlockWrite")
         assert response.status_code == 200
         
         # Unlock port 1
-        response = await client.post(f"/api/v1/devices/{device.id}/port/1/rpc/Kegtron.UnlockWrite")
+        response = await client.post(f"/api/v1/devices/{device.id}/ports/1/rpc/Kegtron.UnlockWrite")
         assert response.status_code == 200
         
         # Verify both calls were made
@@ -106,7 +106,7 @@ class TestRPCEndpoints:
             }
             
             response = await client.post(
-                f"/api/v1/devices/{device.id}/port/0/rpc/Kegtron.ResetVolume",
+                f"/api/v1/devices/{device.id}/ports/0/rpc/Kegtron.ResetVolume",
                 json=reset_data
             )
             assert response.status_code == 200
@@ -145,7 +145,7 @@ class TestRPCEndpoints:
             }
             
             response = await client.post(
-                f"/api/v1/devices/{device.id}/port/0/rpc/Kegtron.ResetVolume",
+                f"/api/v1/devices/{device.id}/ports/0/rpc/Kegtron.ResetVolume",
                 json=reset_data
             )
             assert response.status_code == 200
@@ -171,7 +171,7 @@ class TestRPCEndpoints:
         reset_data = {"keg_size": 19000, "unit": "mL"}  # 5 gallon keg
         
         response = await client.post(
-            f"/api/v1/devices/{device.id}/port/1/rpc/Kegtron.ResetVolume",
+            f"/api/v1/devices/{device.id}/ports/1/rpc/Kegtron.ResetVolume",
             json=reset_data
         )
         assert response.status_code == 400
@@ -182,7 +182,7 @@ class TestRPCEndpoints:
         reset_data = {"keg_size": 19000, "unit": "mL"}  # 5 gallon keg
         
         response = await client.post(
-            "/api/v1/devices/nonexistent/port/0/rpc/Kegtron.ResetVolume",
+            "/api/v1/devices/nonexistent/ports/0/rpc/Kegtron.ResetVolume",
             json=reset_data
         )
         assert response.status_code == 404
@@ -206,7 +206,7 @@ class TestRPCEndpoints:
             reset_data = {"start_volume": 15000, "unit": "mL"}  # ~4 gallons - partial keg
             
             response = await client.post(
-                f"/api/v1/devices/{device.id}/port/0/rpc/Kegtron.ResetVolume",
+                f"/api/v1/devices/{device.id}/ports/0/rpc/Kegtron.ResetVolume",
                 json=reset_data
             )
             assert response.status_code == 200
@@ -240,7 +240,7 @@ class TestRPCEndpoints:
                 "unit": "mL"
             }
             response = await client.post(
-                f"/api/v1/devices/{device.id}/port/0/rpc/Kegtron.ResetVolume",
+                f"/api/v1/devices/{device.id}/ports/0/rpc/Kegtron.ResetVolume",
                 json=reset_data_0
             )
             assert response.status_code == 200
@@ -252,7 +252,7 @@ class TestRPCEndpoints:
                 "unit": "mL"
             }
             response = await client.post(
-                f"/api/v1/devices/{device.id}/port/1/rpc/Kegtron.ResetVolume",
+                f"/api/v1/devices/{device.id}/ports/1/rpc/Kegtron.ResetVolume",
                 json=reset_data_1
             )
             assert response.status_code == 200
@@ -265,3 +265,204 @@ class TestRPCEndpoints:
         port_1 = await PortDB.get_by_device_id_and_index(device.id, 1, async_db_session)
         assert port_1.keg_size == 40000  # Port 1: 10.6 gallon (half barrel)
         assert port_1.volume_dispensed == 0
+    
+    @pytest.mark.asyncio
+    async def test_set_port_name_basic(self, client, async_db_session, sample_device_data, mock_gatt):
+        """Test setting a port name."""
+        # Create a device
+        db_device_data, db_ports_data = convert_device_data_for_db(sample_device_data)
+        
+        device = await DeviceDB.create(async_db_session, **db_device_data)
+        for port_data in db_ports_data:
+            port_data["device_id"] = device.id
+            await PortDB.create(async_db_session, **port_data)
+        await async_db_session.commit()
+        
+        with patch('routes.rpc.gatt.write_chars', new_callable=AsyncMock) as mock_write:
+            # Set port name
+            name_data = {"name": "IPA Keg"}
+            
+            response = await client.post(
+                f"/api/v1/devices/{device.id}/ports/0/rpc/Kegtron.SetPortName",
+                json=name_data
+            )
+            assert response.status_code == 200
+            assert response.json() == {"success": True}
+            
+            # Verify unlock was called
+            mock_gatt.unlock.assert_called_once()
+            
+            # Verify write_chars was called with correct data
+            mock_write.assert_called_once()
+            call_args = mock_write.call_args[0]
+            write_data = call_args[1]
+            # Check that the correct handle was used (port 0)
+            assert 21 in write_data  # CHAR_XGATT0_USER_NAME_HANDLE
+            # Check that the name was padded to 20 bytes
+            assert len(write_data[21]) == 20
+            assert write_data[21] == b"IPA Keg             "
+        
+        # Verify database was updated
+        port = await PortDB.get_by_device_id_and_index(device.id, 0, async_db_session)
+        assert port.port_name == "IPA Keg"
+    
+    @pytest.mark.asyncio
+    async def test_set_port_name_truncation(self, client, async_db_session, sample_device_data, mock_gatt):
+        """Test that long port names are truncated to 20 characters."""
+        # Create a device
+        db_device_data, db_ports_data = convert_device_data_for_db(sample_device_data)
+        
+        device = await DeviceDB.create(async_db_session, **db_device_data)
+        for port_data in db_ports_data:
+            port_data["device_id"] = device.id
+            await PortDB.create(async_db_session, **port_data)
+        await async_db_session.commit()
+        
+        with patch('routes.rpc.gatt.write_chars', new_callable=AsyncMock) as mock_write:
+            # Set a very long port name
+            long_name = "This is a really long beer name that should be truncated"
+            name_data = {"name": long_name}
+            
+            response = await client.post(
+                f"/api/v1/devices/{device.id}/ports/0/rpc/Kegtron.SetPortName",
+                json=name_data
+            )
+            assert response.status_code == 200
+            
+            # Verify the name was truncated in the write
+            call_args = mock_write.call_args[0]
+            write_data = call_args[1]
+            assert len(write_data[21]) == 20
+            assert write_data[21] == b"This is a really lon"
+        
+        # Verify database stores the full name
+        port = await PortDB.get_by_device_id_and_index(device.id, 0, async_db_session)
+        assert port.port_name == long_name
+    
+    @pytest.mark.asyncio
+    async def test_set_port_name_kt200_port1(self, client, async_db_session, sample_device_kt200_data, mock_gatt):
+        """Test setting port name on port 1 of a KT-200 device."""
+        # Create KT-200 device
+        db_device_data, db_ports_data = convert_device_data_for_db(sample_device_kt200_data)
+        
+        device = await DeviceDB.create(async_db_session, **db_device_data)
+        for port_data in db_ports_data:
+            port_data["device_id"] = device.id
+            await PortDB.create(async_db_session, **port_data)
+        await async_db_session.commit()
+        
+        with patch('routes.rpc.gatt.write_chars', new_callable=AsyncMock) as mock_write:
+            # Set port name on port 1
+            name_data = {"name": "Stout"}
+            
+            response = await client.post(
+                f"/api/v1/devices/{device.id}/ports/1/rpc/Kegtron.SetPortName",
+                json=name_data
+            )
+            assert response.status_code == 200
+            
+            # Verify correct handle was used for port 1
+            call_args = mock_write.call_args[0]
+            write_data = call_args[1]
+            assert 84 in write_data  # CHAR_XGATT1_USER_NAME_HANDLE
+            assert write_data[84] == b"Stout               "
+        
+        # Verify port 1 was updated
+        port_1 = await PortDB.get_by_device_id_and_index(device.id, 1, async_db_session)
+        assert port_1.port_name == "Stout"
+    
+    @pytest.mark.asyncio
+    async def test_set_port_name_invalid_port(self, client, async_db_session, sample_device_data, mock_gatt):
+        """Test setting port name on invalid port index."""
+        # Create a KT-100 device (single port)
+        db_device_data, db_ports_data = convert_device_data_for_db(sample_device_data)
+        
+        device = await DeviceDB.create(async_db_session, **db_device_data)
+        for port_data in db_ports_data:
+            port_data["device_id"] = device.id
+            await PortDB.create(async_db_session, **port_data)
+        await async_db_session.commit()
+        
+        # Try to set name on port 1 (doesn't exist on KT-100)
+        name_data = {"name": "Invalid Port"}
+        
+        response = await client.post(
+            f"/api/v1/devices/{device.id}/ports/1/rpc/Kegtron.SetPortName",
+            json=name_data
+        )
+        assert response.status_code == 400
+        assert "out of range" in response.json()["detail"]
+    
+    @pytest.mark.asyncio
+    async def test_set_port_name_nonexistent_device(self, client, mock_gatt):
+        """Test setting port name for a device that doesn't exist."""
+        name_data = {"name": "Test Name"}
+        
+        response = await client.post(
+            "/api/v1/devices/nonexistent/ports/0/rpc/Kegtron.SetPortName",
+            json=name_data
+        )
+        assert response.status_code == 404
+        assert "Unknown device" in response.json()["detail"]
+    
+    @pytest.mark.asyncio
+    async def test_set_port_name_empty_string(self, client, async_db_session, sample_device_data, mock_gatt):
+        """Test setting an empty port name."""
+        # Create a device
+        db_device_data, db_ports_data = convert_device_data_for_db(sample_device_data)
+        
+        device = await DeviceDB.create(async_db_session, **db_device_data)
+        for port_data in db_ports_data:
+            port_data["device_id"] = device.id
+            await PortDB.create(async_db_session, **port_data)
+        await async_db_session.commit()
+        
+        with patch('routes.rpc.gatt.write_chars', new_callable=AsyncMock) as mock_write:
+            # Set empty name
+            name_data = {"name": ""}
+            
+            response = await client.post(
+                f"/api/v1/devices/{device.id}/ports/0/rpc/Kegtron.SetPortName",
+                json=name_data
+            )
+            assert response.status_code == 200
+            
+            # Verify empty string was padded to 20 spaces
+            call_args = mock_write.call_args[0]
+            write_data = call_args[1]
+            assert write_data[21] == b"                    "  # 20 spaces
+        
+        # Verify database was updated
+        port = await PortDB.get_by_device_id_and_index(device.id, 0, async_db_session)
+        assert port.port_name == ""
+    
+    @pytest.mark.asyncio
+    async def test_set_port_name_special_characters(self, client, async_db_session, sample_device_data, mock_gatt):
+        """Test setting port name with special characters."""
+        # Create a device
+        db_device_data, db_ports_data = convert_device_data_for_db(sample_device_data)
+        
+        device = await DeviceDB.create(async_db_session, **db_device_data)
+        for port_data in db_ports_data:
+            port_data["device_id"] = device.id
+            await PortDB.create(async_db_session, **port_data)
+        await async_db_session.commit()
+        
+        with patch('routes.rpc.gatt.write_chars', new_callable=AsyncMock) as mock_write:
+            # Set name with special characters
+            name_data = {"name": "Beer #1 @ 5%"}
+            
+            response = await client.post(
+                f"/api/v1/devices/{device.id}/ports/0/rpc/Kegtron.SetPortName",
+                json=name_data
+            )
+            assert response.status_code == 200
+            
+            # Verify special characters were preserved
+            call_args = mock_write.call_args[0]
+            write_data = call_args[1]
+            assert write_data[21] == b"Beer #1 @ 5%        "
+        
+        # Verify database was updated
+        port = await PortDB.get_by_device_id_and_index(device.id, 0, async_db_session)
+        assert port.port_name == "Beer #1 @ 5%"

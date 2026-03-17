@@ -69,16 +69,37 @@ class TestAuthenticationIntegration:
         assert response.status_code == 401
         
         # Test UnlockWrite
-        response = api_client.post(f"/api/v1/devices/{device.id}/port/0/rpc/Kegtron.UnlockWrite")
+        response = api_client.post(f"/api/v1/devices/{device.id}/ports/0/rpc/Kegtron.UnlockWrite")
         assert response.status_code == 401
         
         # Test ResetVolume
         response = api_client.post(
-            f"/api/v1/devices/{device.id}/port/0/rpc/Kegtron.ResetVolume",
+            f"/api/v1/devices/{device.id}/ports/0/rpc/Kegtron.ResetVolume",
             json={"kegSize": 19000}
         )
         assert response.status_code == 401
-    
+
+        # Test SettPortName
+        response = api_client.post(
+            f"/api/v1/devices/{device.id}/ports/0/rpc/Kegtron.SetPortName",
+            json={"name": "Test Port"}
+        )
+        assert response.status_code == 401
+        
+        # Test SetKegSize
+        response = api_client.post(
+            f"/api/v1/devices/{device.id}/ports/0/rpc/Kegtron.SetKegSize",
+            json={"kegSize": 19000, "unit": "mL"}
+        )
+        assert response.status_code == 401
+
+        # Test SetStartVolume
+        response = api_client.post(
+            f"/api/v1/devices/{device.id}/ports/0/rpc/Kegtron.SetStartVolume",
+            json={"startVolume": 19000, "unit": "mL"}
+        )
+        assert response.status_code == 401
+        
     def test_public_endpoints_no_auth_required(self, api_client, create_test_device):
         """Test that truly public endpoints work without authentication; device endpoints require auth."""
         # Create a device
