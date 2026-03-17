@@ -1,3 +1,7 @@
+import asyncio
+
+lock = asyncio.Lock()
+
 KEGTRON_SIZE_DICT = {
     9464: "Half Corny (2.5 gal)",
     18927: "Corny (5.0 gal)",

@@ -12,6 +12,7 @@ from bleak.backends.device import BLEDevice
 from bleak.backends.scanner import AdvertisementData
 from httpx import AsyncClient
 
+from kegtron import lock
 from kegtron.parser import parse
 from lib import logging
 from lib.config import Config
@@ -272,9 +273,10 @@ async def scan():
     LOGGER.info("Scanning started...")
     try:
         while True:
-            # The scanner automatically starts and stops when used as an async context manager
-            async with BleakScanner(detection_callback=detection_callback):
-                await asyncio.sleep(5.0)  # Scan for 5 seconds
+            async with lock:
+                # The scanner automatically starts and stops when used as an async context manager
+                async with BleakScanner(detection_callback=detection_callback):
+                    await asyncio.sleep(2.0)  # Scan for 2 seconds
     except asyncio.CancelledError:
         LOGGER.info("Cancel received, shutting down scanner.")
     except Exception as ex:
