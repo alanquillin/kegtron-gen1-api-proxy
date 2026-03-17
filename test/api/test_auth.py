@@ -82,7 +82,7 @@ class TestAuthenticationRequired:
         await async_db_session.commit()
 
         # Try to unlock port without auth - should get 401
-        response = await client_no_auth.post(f"/api/v1/devices/{device.id}/port/0/rpc/Kegtron.UnlockWrite")
+        response = await client_no_auth.post(f"/api/v1/devices/{device.id}/ports/0/rpc/Kegtron.UnlockWrite")
         assert response.status_code == 401
         assert "not authorized" in response.json()["detail"].lower()
 
@@ -100,7 +100,7 @@ class TestAuthenticationRequired:
         # Try to reset volume without auth - should get 401
         request_data = {"kegSize": 19000}
         response = await client_no_auth.post(
-            f"/api/v1/devices/{device.id}/port/0/rpc/Kegtron.ResetVolume",
+            f"/api/v1/devices/{device.id}/ports/0/rpc/Kegtron.ResetVolume",
             json=request_data
         )
         assert response.status_code == 401

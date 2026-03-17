@@ -13,7 +13,8 @@ from lib.util import (
     add_query_string,
     get_query_string_params_from_url,
     is_valid_uuid,
-    dict_to_camel_case
+    dict_to_camel_case,
+    string_to_bytes
 )
 
 
@@ -280,3 +281,88 @@ class TestDictToCamelCase:
         assert dict_to_camel_case("string") == "string"
         assert dict_to_camel_case(42) == 42
         assert dict_to_camel_case(None) == None
+
+
+class TestStringToBytes:
+    def test_basic_string_conversion(self):
+        """Test basic string to bytes conversion."""
+        result = string_to_bytes("Hello", max_len=10)
+        expected = b"Hello     "  # Padded to 10 chars
+        assert result == expected
+        assert len(result) == 10
+    
+    def test_truncation(self):
+        """Test that strings longer than max_len are truncated."""
+        result = string_to_bytes("This is a very long string", max_len=10)
+        expected = b"This is a "
+        assert result == expected
+        assert len(result) == 10
+    
+    def test_exact_length(self):
+        """Test string exactly at max_len."""
+        result = string_to_bytes("Exact", max_len=5)
+        expected = b"Exact"
+        assert result == expected
+        assert len(result) == 5
+    
+    def test_default_max_length(self):
+        """Test default max_len of 20."""
+        result = string_to_bytes("Short")
+        expected = b"Short               "  # Padded to 20 chars
+        assert result == expected
+        assert len(result) == 20
+    
+    def test_empty_string(self):
+        """Test empty string input."""
+        result = string_to_bytes("", max_len=10)
+        expected = b"          "  # 10 spaces
+        assert result == expected
+        assert len(result) == 10
+    
+    def test_custom_padding_character(self):
+        """Test custom padding character."""
+        result = string_to_bytes("Test", max_len=10, pad_char='_')
+        expected = b"Test______"
+        assert result == expected
+    
+    def test_different_encoding(self):
+        """Test UTF-8 encoding (though function defaults to ASCII)."""
+        # Note: The function currently uses ASCII by default
+        # Testing with ASCII-compatible characters
+        result = string_to_bytes("Test", max_len=10, encoding='utf-8')
+        expected = "Test      ".encode('utf-8')
+        assert result == expected
+    
+    def test_special_characters(self):
+        """Test handling of special ASCII characters."""
+        result = string_to_bytes("Beer #1", max_len=10)
+        expected = b"Beer #1   "
+        assert result == expected
+    
+    def test_numbers_in_string(self):
+        """Test strings containing numbers."""
+        result = string_to_bytes("Port 123", max_len=10)
+        expected = b"Port 123  "
+        assert result == expected
+    
+    def test_pad_right_true(self):
+        """Test padding on the right (default behavior)."""
+        result = string_to_bytes("ABC", max_len=6, pad_right=True)
+        expected = b"ABC   "
+        assert result == expected
+    
+    def test_kegtron_port_name(self):
+        """Test typical Kegtron port name scenario."""
+        # Kegtron expects 20-byte port names
+        result = string_to_bytes("IPA Keg", max_len=20)
+        expected = b"IPA Keg             "
+        assert result == expected
+        assert len(result) == 20
+    
+    def test_long_port_name_truncation(self):
+        """Test that long port names are truncated to 20 chars."""
+        long_name = "This is a really long beer name that exceeds limit"
+        result = string_to_bytes(long_name, max_len=20)
+        expected = b"This is a really lon"
+        assert result == expected
+        assert len(result) == 20

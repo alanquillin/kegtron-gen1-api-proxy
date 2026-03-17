@@ -325,10 +325,17 @@ body {
 
 .update-time {
     font-size: 0.8rem;
-    color: #6c757d;
     position: absolute;
     bottom: 10px;
     left: 15px;
+}
+
+.update-time.fresh {
+    color: #28a745;
+}
+
+.update-time.stale {
+    color: #dc3545;
 }
 
 .details-toggle {

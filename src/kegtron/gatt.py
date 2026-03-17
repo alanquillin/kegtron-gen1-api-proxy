@@ -1,4 +1,3 @@
-import asyncio
 import logging
 from typing import Any
 
@@ -8,7 +7,6 @@ import kegtron
 
 LOGGER = logging.getLogger("kegtron.gatt")
 
-lock = asyncio.Lock()
 
 def to_bytearray(val: Any, num_bytes: int, endian: str = "little") -> bytearray:
     if isinstance(val, float):
@@ -27,7 +25,7 @@ def to_bytearray(val: Any, num_bytes: int, endian: str = "little") -> bytearray:
 
 async def write_chars(device, data: dict[int, bytearray], response=True):
     mac = device.mac
-    async with lock:
+    async with kegtron.lock:
         async with BleakClient(mac) as client:
             LOGGER.debug("connected to Kegtron at %s", mac)
             if client.is_connected:

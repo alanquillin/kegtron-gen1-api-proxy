@@ -140,9 +140,9 @@
                                     <div class="mb-3">
                                         <label for="displayUnit" class="form-label">Display Unit</label>
                                         <select class="form-select" id="displayUnit" style="max-width: 200px;">
-                                            <option value="ml">Milliliters (mL)</option>
+                                            <option value="mL">Milliliters (mL)</option>
                                             <option value="oz">Fluid Ounces (oz)</option>
-                                            <option value="l">Liters (L)</option>
+                                            <option value="L">Liters (L)</option>
                                             <option value="gal">Gallons (gal)</option>
                                             <option value="pnt">Pints (pnt)</option>
                                         </select>
@@ -153,30 +153,36 @@
                             </div>
 
                             <div class="command-group">
-                                <h5>Set Beer/Keg Name</h5>
-                                <form id="beerNameForm">
+                                <h5>Set Port Name/Label</h5>
+                                <form id="portLabelForm">
                                     <div class="mb-3">
-                                        <input type="text" class="form-control" id="beerName" placeholder="Enter beer/keg name" style="max-width: 250px;">
+                                        <input type="text" class="form-control" id="portLabel" placeholder="Enter beer/keg name" style="max-width: 250px;">
                                         <small class="form-text text-muted">Custom name for this port</small>
                                     </div>
-                                    <button type="submit" class="btn btn-primary btn-sm">Set Name</button>
+                                    <button type="submit" class="btn btn-primary btn-sm" id="portLabelBtn">
+                                        <span class="spinner-border spinner-border-sm" role="status" style="display: none;"></span>
+                                        <span class="btn-text">Set Name</span>
+                                    </button>
                                 </form>
                             </div>
 
                             <div class="command-group">
-                                <h5>New Keg</h5>
+                                <h5>Reset Volume Dispensed</h5>
                                 <form id="newKegForm">
                                     <div class="mb-3">
-                                        <label for="kegSize" class="form-label">Keg Size (mL)</label>
-                                        <input type="number" class="form-control" id="kegSize" placeholder="e.g., 18927" min="0" step="1" style="max-width: 200px;">
-                                        <small class="form-text text-muted">Enter size in milliliters</small>
+                                        <label for="kegSize" class="form-label" id="kegSizeLabel">Keg Size</label>
+                                        <input type="number" class="form-control" id="kegSize" placeholder="e.g., 5.0" min="0" step="0.1" style="max-width: 200px;">
+                                        <small class="form-text text-muted" id="kegSizeHelp">Enter keg size</small>
                                     </div>
                                     <div class="mb-3">
-                                        <label for="startVolume" class="form-label">Start Volume (mL)</label>
-                                        <input type="number" class="form-control" id="startVolume" placeholder="Leave empty for full keg" min="0" step="1" style="max-width: 200px;">
+                                        <label for="startVolume" class="form-label" id="startVolumeLabel">Start Volume</label>
+                                        <input type="number" class="form-control" id="startVolume" placeholder="Leave empty for full keg" min="0" step="0.1" style="max-width: 200px;">
                                         <small class="form-text text-muted">Optional - defaults to keg size</small>
                                     </div>
-                                    <button type="submit" class="btn btn-primary btn-sm">Start New Keg</button>
+                                    <button type="submit" class="btn btn-primary btn-sm" id="resetVolumeBtn">
+                                        <span class="spinner-border spinner-border-sm" role="status" style="display: none;"></span>
+                                        <span class="btn-text">Reset</span>
+                                    </button>
                                     <div class="alert alert-warning mt-2">
                                         <small><strong>Note:</strong> This will reset the volume counter</small>
                                     </div>
@@ -199,12 +205,7 @@
 
                 <!-- Command Response Section -->
                 <div class="row mt-3" id="responseSection" style="display: none;">
-                    <div class="col-12">
-                        <div class="config-section">
-                            <h3>Command Response</h3>
-                            <div id="commandResponse" class="alert" style="display: none;"></div>
-                        </div>
-                    </div>
+                    <div id="commandResponse" class="alert" style="display: none;"></div>
                 </div>
             </div>
         </div>
@@ -214,6 +215,29 @@
         let selectedDevice = null;
         let selectedPort = null;
         let currentUser = null;
+
+        function roundToDecimalPlaces(num, precision) {
+            num = parseFloat(num);
+            const factor = Math.pow(10, precision);
+            return Math.round(num * factor) / factor;
+        }
+        
+        // Helper functions to manage button loading state
+        function setButtonLoading(buttonId, isLoading) {
+            const button = $(`#${buttonId}`);
+            const spinner = button.find('.spinner-border');
+            const buttonText = button.find('.btn-text');
+            
+            if (isLoading) {
+                button.prop('disabled', true);
+                spinner.show();
+                buttonText.css('margin-left', '5px');
+            } else {
+                button.prop('disabled', false);
+                spinner.hide();
+                buttonText.css('margin-left', '0');
+            }
+        }
 
         // Check authentication and redirect if needed
         function checkAuthentication() {
@@ -254,18 +278,21 @@
             // Check for device_id in URL parameters
             const urlParams = new URLSearchParams(window.location.search);
             const deviceId = urlParams.get('device_id');
-            
-            loadDevices(deviceId);
+            // Check for both Port_index and port_index (case variations)
+            let portIndex = urlParams.get('Port_index') || urlParams.get('port_index');
+            portIndex = portIndex !== null ? parseInt(portIndex) : null;
+
+            loadDevices(deviceId, portIndex);
             
             // Set up form handlers
             $('#devicePortSelector').on('change', handleDevicePortSelection);
             $('#deviceDetailsForm').on('submit', handleDeviceDetailsSave);
             $('#displayUnitForm').on('submit', handleDisplayUnitCommand);
-            $('#beerNameForm').on('submit', handleBeerNameCommand);
+            $('#portLabelForm').on('submit', handlePortLabelCommand);
             $('#newKegForm').on('submit', handleNewKegCommand);
         }
 
-        function loadDevices(preselectedDeviceId) {
+        function loadDevices(preselectedDeviceId, preselectedPortIndex) {
             fetch('/api/v1/devices')
                 .then(response => response.json())
                 .then(devices => {
@@ -284,9 +311,15 @@
                                     option.textContent = `${device.id} - ${portName}`;
                                     selector.appendChild(option);
                                     
-                                    // Pre-select if device_id matches
-                                    if (preselectedDeviceId === device.id && port.portIndex === 0) {
-                                        option.selected = true;
+                                    // Pre-select if device_id and port_index match
+                                    if (preselectedDeviceId === device.id && 
+                                        (preselectedPortIndex === null || preselectedPortIndex === port.portIndex)) {
+                                        // If no port index specified, select first port; otherwise select matching port
+                                        if (preselectedPortIndex === null && port.portIndex === 0) {
+                                            option.selected = true;
+                                        } else if (preselectedPortIndex === port.portIndex) {
+                                            option.selected = true;
+                                        }
                                     }
                                 }
                             });
@@ -336,8 +369,9 @@
                     // Update port-specific fields
                     if (selectedPort) {
                         $('#displayUnit').val(selectedPort.displayUnit || 'ml');
-                        $('#beerName').val(selectedPort.portName || '');
+                        $('#portLabel').val(selectedPort.portName || '');
                         updateCurrentStatus();
+                        updateResetVolumeForm();
                     }
                 })
                 .catch(error => {
@@ -346,34 +380,104 @@
                 });
         }
 
+        // Get the display label for the unit
+        function getUnitLabel(unit) {
+            if (!unit) return 'mL';
+            
+            const unitLower = unit.toLowerCase();
+            switch(unitLower) {
+                case 'ml': return 'mL';
+                case 'oz': return 'oz';
+                case 'l': return 'L';
+                case 'gal': return 'gal';
+                case 'pnt': return 'pnt';
+                default: return unit;
+            }
+        }
+
         function updateCurrentStatus() {
             if (!selectedPort) return;
             
             const volumeLeft = selectedPort.startVolume - selectedPort.volumeDispensed;
             const percentLeft = selectedPort.kegSize > 0 ? ((volumeLeft / selectedPort.kegSize) * 100).toFixed(1) : 0;
-            const displayUnit = selectedPort.displayUnit || 'mL';
+            const displayUnit = selectedPort.displayUnit || 'ml';
+            const unitLabel = getUnitLabel(displayUnit);
             
             let statusHtml = `
                 <div class="mb-2"><strong>Port Name:</strong> ${selectedPort.portName || 'Not set'}</div>
-                <div class="mb-2"><strong>Display Unit:</strong> ${displayUnit}</div>
+                <div class="mb-2"><strong>Display Unit:</strong> ${unitLabel}</div>
             `;
             
             if (selectedPort.kegSize > 0) {
                 statusHtml += `
-                    <div class="mb-2"><strong>Keg Size:</strong> ${selectedPort.kegSize} mL</div>
-                    <div class="mb-2"><strong>Start Volume:</strong> ${selectedPort.startVolume} mL</div>
-                    <div class="mb-2"><strong>Volume Dispensed:</strong> ${selectedPort.volumeDispensed.toFixed(1)} mL</div>
-                    <div class="mb-2"><strong>Volume Left:</strong> ${volumeLeft.toFixed(1)} mL (${percentLeft}%)</div>
+                    <div class="mb-2"><strong>Keg Size:</strong> ${selectedPort.kegSize} ${unitLabel}</div>
+                    <div class="mb-2"><strong>Start Volume:</strong> ${selectedPort.startVolume} ${unitLabel}</div>
+                    <div class="mb-2"><strong>Volume Dispensed:</strong> ${selectedPort.volumeDispensed} ${unitLabel}</div>
+                    <div class="mb-2"><strong>Volume Left:</strong> ${volumeLeft} ${unitLabel} (${percentLeft}%)</div>
                 `;
                 
                 if (selectedPort.lastPour > 0) {
-                    statusHtml += `<div class="mb-2"><strong>Last Pour:</strong> ${selectedPort.lastPour.toFixed(1)} mL</div>`;
+                    statusHtml += `<div class="mb-2"><strong>Last Pour:</strong> ${selectedPort.lastPour} ${unitLabel}</div>`;
                 }
             } else {
                 statusHtml += `<div class="mb-2 text-muted">No keg configured</div>`;
             }
             
             $('#currentStatus').html(statusHtml);
+        }
+        
+        function updateResetVolumeForm() {
+            if (!selectedPort) return;
+            
+            const displayUnit = selectedPort.displayUnit || 'ml';
+            const unitLabel = getUnitLabel(displayUnit);
+            
+            // Update labels with unit
+            $('#kegSizeLabel').text(`Keg Size (${unitLabel})`);
+            $('#startVolumeLabel').text(`Start Volume (${unitLabel})`);
+            $('#kegSizeHelp').text(`Enter keg size in ${unitLabel}`);
+            
+            // Set step value based on unit for better UX
+            let step = 0.1;
+            if (displayUnit.toLowerCase() === 'ml') {
+                step = 1;
+            }
+            $('#kegSize').attr('step', step);
+            $('#startVolume').attr('step', step);
+            
+            // Populate with current values if they exist
+            if (selectedPort.kegSize > 0) {
+                let currentKegSize = selectedPort.kegSize;
+                let currentStartVolume = selectedPort.startVolume;
+                if (displayUnit.toLowerCase() !== 'ml') {
+                    currentKegSize = roundToDecimalPlaces(currentKegSize, 2);
+                    currentStartVolume = roundToDecimalPlaces(currentStartVolume, 2);
+                }
+                $('#kegSize').val(currentKegSize);
+                $('#startVolume').val(currentStartVolume);
+                
+                // Update placeholder to show example based on current unit
+                $('#kegSize').attr('placeholder', `Current: ${currentKegSize}`);
+                $('#startVolume').attr('placeholder', `Current: ${currentStartVolume}`);
+            } else {
+                // Clear values and set example placeholders
+                $('#kegSize').val('');
+                $('#startVolume').val('');
+                
+                // Set example placeholders based on unit
+                let exampleSize = '18927';
+                if (displayUnit.toLowerCase() === 'gal') {
+                    exampleSize = '4.99';
+                } else if (displayUnit.toLowerCase() === 'oz') {
+                    exampleSize = '639.99';
+                } else if (displayUnit.toLowerCase() === 'l') {
+                    exampleSize = '18.927';
+                } else if (displayUnit.toLowerCase() === 'pnt') {
+                    exampleSize = '39.99';
+                }
+                $('#kegSize').attr('placeholder', `e.g., ${exampleSize}`);
+                $('#startVolume').attr('placeholder', 'Leave empty for full keg');
+            }
         }
 
         function handleDeviceDetailsSave(e) {
@@ -412,60 +516,61 @@
             
             const displayUnit = $('#displayUnit').val();
             
-            sendPortCommand('display_unit', { display_unit: displayUnit });
+            // Update the selectedPort's display unit immediately for UI updates
+            selectedPort.displayUnit = displayUnit;
+            updateResetVolumeForm();
+            updateCurrentStatus();
+            
+            // Use PATCH API to update the port's display unit
+            fetch(`/api/v1/devices/${selectedDevice.id}/ports/${selectedPort.portIndex}`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    displayUnit: displayUnit
+                })
+            })
+            .then(response => {
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                return response.json();
+            })
+            .then(data => {
+                showCommandResponse('Display unit updated successfully!', 'success');
+                
+                // Reload device to ensure we have the latest data
+                setTimeout(() => {
+                    handleDevicePortSelection();
+                }, 1000);
+            })
+            .catch(error => {
+                console.error('Error updating display unit:', error);
+                showCommandResponse(`Error updating display unit: ${error.message}`, 'danger');
+                
+                // Revert the UI changes on error
+                handleDevicePortSelection();
+            });
         }
 
-        function handleBeerNameCommand(e) {
+        function handlePortLabelCommand(e) {
             e.preventDefault();
             
             if (!selectedDevice || !selectedPort) return;
             
-            const beerName = $('#beerName').val();
+            const portLabel = $('#portLabel').val();
             
-            if (!beerName) {
+            if (!portLabel) {
                 showCommandResponse('Please enter a beer/keg name', 'warning');
                 return;
             }
             
-            sendPortCommand('beer_name', { beer_name: beerName });
-        }
-
-        function handleNewKegCommand(e) {
-            e.preventDefault();
+            // Set button to loading state
+            setButtonLoading('portLabelBtn', true);
             
-            if (!selectedDevice || !selectedPort) return;
+            // Send the command with custom success/error handlers
+            const requestData = { name: portLabel };
             
-            const kegSize = parseInt($('#kegSize').val());
-            const startVolume = $('#startVolume').val() ? parseInt($('#startVolume').val()) : null;
-            
-            if (!kegSize || kegSize <= 0) {
-                showCommandResponse('Please enter a valid keg size', 'warning');
-                return;
-            }
-            
-            if (startVolume !== null && startVolume > kegSize) {
-                showCommandResponse('Start volume cannot be greater than keg size', 'warning');
-                return;
-            }
-            
-            const params = { keg_size: kegSize };
-            if (startVolume !== null) {
-                params.start_volume = startVolume;
-            }
-            
-            sendPortCommand('new_keg', params);
-        }
-
-        function sendPortCommand(command, params) {
-            if (!selectedDevice || selectedPort === null) return;
-            
-            const requestData = {
-                command: command,
-                port_index: selectedPort.portIndex,
-                ...params
-            };
-            
-            fetch(`/api/v1/devices/${selectedDevice.id}/command`, {
+            fetch(`/api/v1/devices/${selectedDevice.id}/ports/${selectedPort.portIndex}/rpc/Kegtron.SetPortName`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -477,18 +582,85 @@
                 return response.json();
             })
             .then(data => {
-                showCommandResponse(`Command "${command}" executed successfully!`, 'success');
-                
+                showCommandResponse('Port name updated successfully!', 'success');
                 // Reload device to update status
                 setTimeout(() => {
                     handleDevicePortSelection();
                 }, 1000);
             })
             .catch(error => {
-                console.error('Error sending command:', error);
-                showCommandResponse(`Error executing command: ${error.message}`, 'danger');
+                console.error('Error setting port name:', error);
+                showCommandResponse(`Error setting port name: ${error.message}`, 'danger');
+            })
+            .finally(() => {
+                // Always restore button state
+                setButtonLoading('portLabelBtn', false);
             });
         }
+
+        function handleNewKegCommand(e) {
+            e.preventDefault();
+            
+            if (!selectedDevice || !selectedPort) return;
+            
+            const kegSize = parseFloat($('#kegSize').val());
+            let startVolume = $('#startVolume').val() ? parseFloat($('#startVolume').val()) : null;
+            
+            if (!kegSize || kegSize <= 0) {
+                showCommandResponse('Please enter a valid keg size', 'warning');
+                return;
+            }
+            
+            if (startVolume !== null && startVolume > kegSize) {
+                showCommandResponse('Start volume cannot be greater than keg size', 'warning');
+                return;
+            }
+
+            if (startVolume === null) {
+                startVolume = kegSize;
+            }
+            
+            // Set button to loading state
+            setButtonLoading('resetVolumeBtn', true);
+            
+            const params = { 
+                keg_size: kegSize,
+                start_volume: startVolume,
+                unit: selectedPort.displayUnit
+            };
+            
+            // Send the reset volume command
+            fetch(`/api/v1/devices/${selectedDevice.id}/ports/${selectedPort.portIndex}/rpc/Kegtron.ResetVolume`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(params)
+            })
+            .then(response => {
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                return response.json();
+            })
+            .then(data => {
+                showCommandResponse('Volume reset successfully!', 'success');
+                // Clear the form
+                $('#kegSize').val('');
+                $('#startVolume').val('');
+                // Reload device to update status
+                setTimeout(() => {
+                    handleDevicePortSelection();
+                }, 1000);
+            })
+            .catch(error => {
+                console.error('Error resetting volume:', error);
+                showCommandResponse(`Error resetting volume: ${error.message}`, 'danger');
+            })
+            .finally(() => {
+                // Always restore button state
+                setButtonLoading('resetVolumeBtn', false);
+            });
+        }
+
 
         function showCommandResponse(message, type) {
             const responseDiv = $('#commandResponse');

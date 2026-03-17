@@ -70,7 +70,10 @@ scan-debug:
 
 # Testing and Syntax targets
 
-test: test-unit test-api test-integration
+test:
+	$(PYTEST) test -v
+
+test-all: test-unit test-api test-integration
 
 test-unit:
 	$(PYTEST) test/unit
