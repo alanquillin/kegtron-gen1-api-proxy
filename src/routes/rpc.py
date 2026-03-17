@@ -10,6 +10,7 @@ from kegtron import gatt
 from lib import logging
 from lib.config import Config
 from lib.units import to_ml
+from lib.util import string_to_bytes
 from schemas.rpc import ResetVolumeRequest, SetPortNameRequest, SetKegSizeRequest, SetStartVolumeRequest
 
 LOGGER = logging.getLogger(__name__)
@@ -19,6 +20,17 @@ CONFIG = Config()
 router_ports = APIRouter(prefix="/api/v1/devices/{device_id}/ports/{port_index}/rpc")
 router_devices = APIRouter(prefix="/api/v1/devices/{device_id}/rpc")
 
+
+async def write_data_to_device_and_update_port(device: deviceDB, port: portDB, u_data: dict[int, bytearray], updates: dict[str, any], db: AsyncSession) -> bool:
+    LOGGER.debug("attempting to write data to device: %s", u_data)
+    await gatt.unlock(device, port.port_index)
+    LOGGER.debug("attempting to write data to device %s, data: %s", device.id, u_data)
+    await gatt.write_chars(device, u_data)
+
+    LOGGER.debug("Updating port DB data on device %s on port %s, data: %s", device.id, port.port_index, updates)
+    await port.update(db, **updates)
+
+    return True
 
 @router_devices.post("/Kegtron.UnlockWriteAll")
 async def unlock_write_all_rpc(device_id: str, db: AsyncSession = Depends(get_async_db), current_user: AuthUser = Depends(require_user)):
@@ -37,11 +49,9 @@ async def unlock_write_rpc(device_id: str, port_index: int, db: AsyncSession = D
     if not device:
         raise HTTPException(status_code=404, detail=f"Unknown device with id {device_id}")
 
-    if port_index is None:
-        port_cnt = device.get("port_cnt", 1)
-        if port_cnt > 1:
-            raise HTTPException(status_code=400, detail="port value is required but not supplied.")
-        port_index = 0
+    port_cnt = device.port_cnt
+    if port_index >= port_cnt:
+        raise HTTPException(status_code=400, detail=f"Port index {port_index} is out of range for device {device_id}.  Must be between 0 and {port_cnt - 1}")
 
     await gatt.unlock(device, port_index)
 
@@ -52,14 +62,13 @@ async def unlock_write_rpc(device_id: str, port_index: int, db: AsyncSession = D
 async def reset_volume_rpc(
     device_id: str, port_index: int, request: ResetVolumeRequest, db: AsyncSession = Depends(get_async_db), current_user: AuthUser = Depends(require_user)
 ):
-    # raise HTTPException(status_code=405, detail="Method not yet implemented")
     device = await deviceDB.get(device_id, db)
     if not device:
         raise HTTPException(status_code=404, detail=f"Unknown device with id {device_id}")
 
     port_cnt = device.port_cnt
     if port_index >= port_cnt:
-        raise HTTPException(status_code=400, detail="port value is required but not supplied.")
+        raise HTTPException(status_code=400, detail=f"Port index {port_index} is out of range for device {device_id}.  Must be between 0 and {port_cnt - 1}")
 
     port = await portDB.get_by_device_id_and_index(device_id, port_index, db)
     if not port:
@@ -94,28 +103,36 @@ async def reset_volume_rpc(
         updates["start_volume"] = start_volume_ml
         u_data[volume_key] = gatt.to_bytearray(start_volume_ml, 2)
 
-    LOGGER.debug("attempting to write data to device: %s", u_data)
-    await gatt.unlock(device, port_index)
-    LOGGER.debug("attempting to write data to device %s, data: %s", device_id, u_data)
-    await gatt.write_chars(device, u_data)
-    LOGGER.debug("done writing to device %s", device_id)
+    res = await write_data_to_device_and_update_port(device, port, u_data, updates, db)
 
-    LOGGER.debug("Updating port DB data on device %s on port %s, data: %s", device_id, port_index, updates)
-    await port.update(db, **updates)
-
-    return {"success": True}
+    return {"success": res}
 
 
 @router_ports.post("/Kegtron.SetPortName")
 async def set_port_name_rpc(device_id: str, port_index: int, request: SetPortNameRequest, db: AsyncSession = Depends(get_async_db), current_user: AuthUser = Depends(require_user)):
-    raise HTTPException(status_code=405, detail="Method not yet implemented")
-    # device = await deviceDB.get(device_id, db)
-    # if not device:
-    #     raise HTTPException(status_code=404, detail=f"Unknown device with id {device_id}")
+    device = await deviceDB.get(device_id, db)
+    if not device:
+        raise HTTPException(status_code=404, detail=f"Unknown device with id {device_id}")
 
-    # port = await portDB.get_by_device_id_and_index(device_id, port_index, db)
-    # if not port:
-    #     raise HTTPException(status_code=404, detail=f"Port with index {port_index} for device {device_id} not found")
+    port_cnt = device.port_cnt
+    if port_index >= port_cnt:
+        raise HTTPException(status_code=400, detail=f"Port index {port_index} is out of range for device {device_id}.  Must be between 0 and {port_cnt - 1}")
+
+    port = await portDB.get_by_device_id_and_index(device_id, port_index, db)
+    if not port:
+        raise HTTPException(status_code=404, detail=f"Port with index {port_index} for device {device_id} not found")
+
+    updates = {"port_name": request.name}
+    u_data: dict[int, bytearray] = {}
+    name_key = kegtron.CHAR_XGATT0_USER_NAME_HANDLE
+    if port_index == 1:
+        name_key = kegtron.CHAR_XGATT1_USER_NAME_HANDLE
+
+    u_data[name_key] = string_to_bytes(request.name, max_len=20)
+
+    res = await write_data_to_device_and_update_port(device, port, u_data, updates, db)
+
+    return {"success": res}
 
 
 @router_ports.post("/Kegtron.SetKegSize")
@@ -126,7 +143,7 @@ async def set_keg_size_rpc(device_id: str, port_index: int, request: SetKegSizeR
 
     port_cnt = device.port_cnt
     if port_index >= port_cnt:
-        raise HTTPException(status_code=400, detail="port value is required but not supplied.")
+        raise HTTPException(status_code=400, detail=f"Port index {port_index} is out of range for device {device_id}.  Must be between 0 and {port_cnt - 1}")
 
     port = await portDB.get_by_device_id_and_index(device_id, port_index, db)
     if not port:
@@ -142,19 +159,9 @@ async def set_keg_size_rpc(device_id: str, port_index: int, request: SetKegSizeR
     if not unit:
         unit = "mL"
 
-    keg_size_ml = to_ml(request.keg_size, unit)
-    u_data[size_key] = gatt.to_bytearray(keg_size_ml, 2)
+    res = await write_data_to_device_and_update_port(device, port, u_data, updates, db)
 
-    LOGGER.debug("attempting to write data to device: %s", u_data)
-    await gatt.unlock(device, port_index)
-    LOGGER.debug("attempting to write data to device %s, data: %s", device_id, u_data)
-    await gatt.write_chars(device, u_data)
-    LOGGER.debug("done writing to device %s", device_id)
-
-    LOGGER.debug("Updating port DB data on device %s on port %s, data: %s", device_id, port_index, updates)
-    await port.update(db, **updates)
-
-    return {"success": True}
+    return {"success": res}
 
 @router_ports.post("/Kegtron.SetStartVolume")
 async def set_start_volume_rpc(device_id: str, port_index: int, request: SetStartVolumeRequest, db: AsyncSession = Depends(get_async_db), current_user: AuthUser = Depends(require_user)):
@@ -183,13 +190,6 @@ async def set_start_volume_rpc(device_id: str, port_index: int, request: SetStar
     start_volume_ml = to_ml(request.start_volume, unit)
     u_data[key] = gatt.to_bytearray(start_volume_ml, 2)
 
-    LOGGER.debug("attempting to write data to device: %s", u_data)
-    await gatt.unlock(device, port_index)
-    LOGGER.debug("attempting to write data to device %s, data: %s", device_id, u_data)
-    await gatt.write_chars(device, u_data)
-    LOGGER.debug("done writing to device %s", device_id)
+    res = await write_data_to_device_and_update_port(device, port, u_data, updates, db)
 
-    LOGGER.debug("Updating port DB data on device %s on port %s, data: %s", device_id, port_index, updates)
-    await port.update(db, **updates)
-
-    return {"success": True}
+    return {"success": res}
