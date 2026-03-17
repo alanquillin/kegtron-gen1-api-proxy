@@ -1,4 +1,3 @@
-import asyncio
 import logging
 from typing import Any
 
@@ -7,7 +6,6 @@ from bleak import BleakClient
 import kegtron
 
 LOGGER = logging.getLogger("kegtron.gatt")
-
 
 
 def to_bytearray(val: Any, num_bytes: int, endian: str = "little") -> bytearray:

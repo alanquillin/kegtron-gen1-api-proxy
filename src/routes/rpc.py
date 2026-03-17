@@ -11,7 +11,7 @@ from lib import logging
 from lib.config import Config
 from lib.units import to_ml
 from lib.util import string_to_bytes
-from schemas.rpc import ResetVolumeRequest, SetPortNameRequest, SetKegSizeRequest, SetStartVolumeRequest
+from schemas.rpc import ResetVolumeRequest, SetKegSizeRequest, SetPortNameRequest, SetStartVolumeRequest
 
 LOGGER = logging.getLogger(__name__)
 CONFIG = Config()
@@ -31,6 +31,7 @@ async def write_data_to_device_and_update_port(device: deviceDB, port: portDB, u
     await port.update(db, **updates)
 
     return True
+
 
 @router_devices.post("/Kegtron.UnlockWriteAll")
 async def unlock_write_all_rpc(device_id: str, db: AsyncSession = Depends(get_async_db), current_user: AuthUser = Depends(require_user)):
@@ -109,7 +110,9 @@ async def reset_volume_rpc(
 
 
 @router_ports.post("/Kegtron.SetPortName")
-async def set_port_name_rpc(device_id: str, port_index: int, request: SetPortNameRequest, db: AsyncSession = Depends(get_async_db), current_user: AuthUser = Depends(require_user)):
+async def set_port_name_rpc(
+    device_id: str, port_index: int, request: SetPortNameRequest, db: AsyncSession = Depends(get_async_db), current_user: AuthUser = Depends(require_user)
+):
     device = await deviceDB.get(device_id, db)
     if not device:
         raise HTTPException(status_code=404, detail=f"Unknown device with id {device_id}")
@@ -136,7 +139,9 @@ async def set_port_name_rpc(device_id: str, port_index: int, request: SetPortNam
 
 
 @router_ports.post("/Kegtron.SetKegSize")
-async def set_keg_size_rpc(device_id: str, port_index: int, request: SetKegSizeRequest, db: AsyncSession = Depends(get_async_db), current_user: AuthUser = Depends(require_user)):
+async def set_keg_size_rpc(
+    device_id: str, port_index: int, request: SetKegSizeRequest, db: AsyncSession = Depends(get_async_db), current_user: AuthUser = Depends(require_user)
+):
     device = await deviceDB.get(device_id, db)
     if not device:
         raise HTTPException(status_code=404, detail=f"Unknown device with id {device_id}")
@@ -151,20 +156,26 @@ async def set_keg_size_rpc(device_id: str, port_index: int, request: SetKegSizeR
 
     updates = {"keg_size": request.keg_size}
     u_data: dict[int, bytearray] = {}
-    size_key = kegtron.CHAR_XGATT0_VOL_SIZE_HANDLE
+    key = kegtron.CHAR_XGATT0_VOL_SIZE_HANDLE
     if port_index == 1:
-        size_key = kegtron.CHAR_XGATT1_VOL_SIZE_HANDLE
+        key = kegtron.CHAR_XGATT1_VOL_SIZE_HANDLE
 
     unit = request.unit
     if not unit:
         unit = "mL"
 
+    keg_size_ml = to_ml(request.keg_size, unit)
+    u_data[key] = gatt.to_bytearray(keg_size_ml, 2)
+
     res = await write_data_to_device_and_update_port(device, port, u_data, updates, db)
 
     return {"success": res}
 
+
 @router_ports.post("/Kegtron.SetStartVolume")
-async def set_start_volume_rpc(device_id: str, port_index: int, request: SetStartVolumeRequest, db: AsyncSession = Depends(get_async_db), current_user: AuthUser = Depends(require_user)):
+async def set_start_volume_rpc(
+    device_id: str, port_index: int, request: SetStartVolumeRequest, db: AsyncSession = Depends(get_async_db), current_user: AuthUser = Depends(require_user)
+):
     device = await deviceDB.get(device_id, db)
     if not device:
         raise HTTPException(status_code=404, detail=f"Unknown device with id {device_id}")

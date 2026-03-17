@@ -133,16 +133,18 @@ def dict_to_camel_case(data: Union[Dict, List, Any], skip_none: bool = True) -> 
 
     return data
 
-def string_to_bytes(input_string, max_len=20, encoding='ascii', pad_char=' ', pad_right=True):
+
+def string_to_bytes(input_string, max_len=20, encoding="ascii", pad_char=" ", pad_right=True):
     # Truncate the string if it exceeds the maximum length
     truncated_string = input_string[:max_len]
-    
+
     # Pad the string with spaces on the right to reach the maximum length
+    padded_string = truncated_string
     if pad_right:
         padded_string = truncated_string.ljust(max_len, pad_char)
-    
+
     # Encode the padded string to bytes using an appropriate encoding (e.g., ASCII)
     # ASCII is single-byte per character, which ensures fixed length in bytes
     byte_array = padded_string.encode(encoding)
-    
+
     return byte_array
