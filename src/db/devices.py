@@ -66,4 +66,3 @@ class Device(Base, CRUDMixin, DictifiableMixin):
         if not result:
             return None
         return result[0]
-

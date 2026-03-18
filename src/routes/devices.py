@@ -79,14 +79,16 @@ async def get_device(device_id: str, db: AsyncSession = Depends(get_async_db)) -
         raise HTTPException(status_code=404, detail=f"Device with id {device_id} not found")
     return transform_device(device)
 
+
 @router.get("/{device_id}/online")
 async def get_device_online(device_id: str, db: AsyncSession = Depends(get_async_db)) -> dict:
     device = await deviceDB.get(device_id, db, options=[selectinload(deviceDB.ports)])
     if not device:
         raise HTTPException(status_code=404, detail=f"Device with id {device_id} not found")
-    
+
     online = await gatt.test_connection(device)
     return {"online": online}
+
 
 async def update_device_ports(
     device_id: str,
@@ -122,8 +124,6 @@ async def update_device_ports(
             LOGGER.debug("No existing ports found for device, creating port for index %s", idx)
             port_dict["device_id"] = device_id
             await portsDB.create(db, autocommit=False, **port_dict)
-
-
 
 
 @router.put("/{device_id}")

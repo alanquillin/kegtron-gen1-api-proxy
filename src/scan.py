@@ -14,6 +14,7 @@ from httpx import AsyncClient
 
 from db import AsyncSessionLocal
 from db.devices import Device
+from db.ports import Port
 from kegtron import lock
 from kegtron.parser import parse
 from lib import logging
@@ -133,10 +134,6 @@ async def _update_device_db(data: dict) -> bool:
     if BACKEND != "db":
         LOGGER.error("Database backend not configured")
         return False
-
-    from db import AsyncSessionLocal
-    from db.devices import Device
-    from db.ports import Port
 
     device_id = data["id"]
     async with AsyncSessionLocal() as db:

@@ -65,6 +65,7 @@ async def unlock_all(device):
 
     await write_chars(device, data)
 
+
 async def test_connection(device) -> bool:
     mac = device.mac
     async with kegtron.lock:
@@ -73,8 +74,5 @@ async def test_connection(device) -> bool:
             if client.is_connected:
                 LOGGER.debug("device is connected")
                 return True
-            else:
-                LOGGER.warning("failed to connect to device at mac: %s", mac)
-                return False
-    
+
     return False
