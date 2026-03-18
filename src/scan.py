@@ -12,6 +12,8 @@ from bleak.backends.device import BLEDevice
 from bleak.backends.scanner import AdvertisementData
 from httpx import AsyncClient
 
+from db import AsyncSessionLocal
+from db.devices import Device
 from kegtron import lock
 from kegtron.parser import parse
 from lib import logging
@@ -84,9 +86,6 @@ async def _save_device_db(data: dict) -> bool:
     if BACKEND != "db":
         LOGGER.error("Database backend not configured")
         return False
-
-    from db import AsyncSessionLocal
-    from db.devices import Device
 
     device_id = data["id"]
     mac = data["mac"]
@@ -239,6 +238,11 @@ async def proc_kegtron_device(device: BLEDevice, adv_data: AdvertisementData, ra
         await add_new_dev(addr, device.name, adv_data, parsed_data)
 
     if addr in kegtron_devices:
+        if BACKEND == "db":
+            async with AsyncSessionLocal() as db:
+                device = await Device.get_by_mac(addr, db)
+                if device:
+                    await device.update(db, last_advertisement_timestamp_utc=utcnow_aware())
         kegtron_devices[addr]["rssi"] = adv_data.rssi
         kegtron_devices[addr]["last_advertisement_timestamp_utc"] = utcnow_aware()
 

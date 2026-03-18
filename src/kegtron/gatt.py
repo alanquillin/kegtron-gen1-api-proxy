@@ -64,3 +64,17 @@ async def unlock_all(device):
         data[kegtron.CHAR_XGATT1_WR_UNLOCK_HANDLE] = val
 
     await write_chars(device, data)
+
+async def test_connection(device) -> bool:
+    mac = device.mac
+    async with kegtron.lock:
+        async with BleakClient(mac) as client:
+            LOGGER.debug("connected to Kegtron at %s", mac)
+            if client.is_connected:
+                LOGGER.debug("device is connected")
+                return True
+            else:
+                LOGGER.warning("failed to connect to device at mac: %s", mac)
+                return False
+    
+    return False
