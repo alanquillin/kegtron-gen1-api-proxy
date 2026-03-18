@@ -58,3 +58,11 @@ class Device(Base, CRUDMixin, DictifiableMixin):
         """Check if a record exists by ID (async)"""
         result = await db.execute(select(cls.mac).where(cls.mac == mac))
         return result.scalar_one_or_none() is not None
+
+    @classmethod
+    async def get_by_mac(cls, mac: Any, db: AsyncSession) -> bool:
+        """Check if a record exists by ID (async)"""
+        result = await cls.query(db, mac=mac)
+        if not result:
+            return None
+        return result[0]

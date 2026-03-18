@@ -147,6 +147,14 @@
             return (now - date) > twoHoursMs;
         }
 
+        function isWithinLastHour(isoString) {
+            if (!isoString) return false;
+            const date = parseUtcDate(isoString);
+            const now = new Date();
+            const oneHourMs = 60 * 60 * 1000;
+            return (now - date) <= oneHourMs;
+        }
+
         function calculatePercentLeft(kegSize, volumeLeft) {
             if (kegSize == null || volumeLeft == null) return null;
             return ((volumeLeft / kegSize) * 100).toFixed(2);
@@ -195,6 +203,10 @@
             return `
                 <div class="col-12 col-md-6 col-lg-4">
                     <div class="card device-card ${isExpanded ? 'expanded' : ''}" id="card-${cardId}">
+                        <div class="online-indicator checking" id="online-${cardId}">
+                            <span class="status-dot"></span>
+                            <span class="status-text">Checking...</span>
+                        </div>
                         ${settingsIcon}
                         <div class="card-body">
                             <div class="device-header">${model} - Port ${portIndex + 1}</div>
@@ -274,6 +286,60 @@
             }
         }
 
+        // Cache for device online status with 2-minute TTL
+        const deviceOnlineCache = new Map();
+        const ONLINE_CACHE_TTL = 2 * 60 * 1000; // 2 minutes in milliseconds
+
+        async function getDeviceOnlineStatus(deviceId) {
+            // Check cache first
+            const cached = deviceOnlineCache.get(deviceId);
+            if (cached && (Date.now() - cached.timestamp < ONLINE_CACHE_TTL)) {
+                return cached.online;
+            }
+
+            // Fetch fresh status
+            try {
+                const response = await fetch(`/api/v1/devices/${deviceId}/online`);
+                if (response.ok) {
+                    const data = await response.json();
+                    // Cache the result
+                    deviceOnlineCache.set(deviceId, {
+                        online: data.online,
+                        timestamp: Date.now()
+                    });
+                    return data.online;
+                } else {
+                    // Cache offline status on error
+                    deviceOnlineCache.set(deviceId, {
+                        online: false,
+                        timestamp: Date.now()
+                    });
+                    return false;
+                }
+            } catch (error) {
+                console.error(`Error checking online status for device ${deviceId}:`, error);
+                // Cache offline status on error
+                deviceOnlineCache.set(deviceId, {
+                    online: false,
+                    timestamp: Date.now()
+                });
+                return false;
+            }
+        }
+
+        function updateOnlineIndicator(cardId, isOnline) {
+            const indicator = document.getElementById(`online-${cardId}`);
+            if (!indicator) return;
+
+            if (isOnline) {
+                indicator.className = 'online-indicator online';
+                indicator.innerHTML = '<span class="status-dot"></span><span class="status-text">Online</span>';
+            } else {
+                indicator.className = 'online-indicator offline';
+                indicator.innerHTML = '<span class="status-dot"></span><span class="status-text">Offline</span>';
+            }
+        }
+
         function loadDevices() {
             const devicesDiv = document.getElementById('devices');
             const loadingDiv = document.getElementById('loading');
@@ -293,6 +359,8 @@
                 })
                 .then(devices => {
                     let html = '';
+                    const deviceStatusChecks = new Map(); // Map to track unique devices
+                    const cardsByDevice = new Map(); // Map device IDs to their card IDs
                     
                     if (devices.length === 0) {
                         html = '<div class="col-12 text-center"><p>No devices found. Make sure your Kegtron devices are powered on and nearby.</p></div>';
@@ -301,11 +369,25 @@
                             if (device.ports && typeof device.ports === 'object') {
                                 // Handle both array and object format for ports
                                 const ports = Array.isArray(device.ports) ? device.ports : Object.values(device.ports);
+                                const deviceCardIds = [];
+                                
                                 ports.forEach(port => {
                                     if (port && typeof port === 'object') {
                                         html += createDeviceCard(device.id, device, port);
+                                        const cardId = `${device.id}-${port.portIndex}`;
+                                        deviceCardIds.push(cardId);
                                     }
                                 });
+                                
+                                // Store device for online checking (only once per device)
+                                if (deviceCardIds.length > 0) {
+                                    cardsByDevice.set(device.id, deviceCardIds);
+                                    if (isWithinLastHour(device.lastAdvertisementTimestampUtc)) {
+                                        deviceStatusChecks.set(device.id, true);
+                                    } else {
+                                        deviceStatusChecks.set(device.id, false);
+                                    }
+                                }
                             }
                         });
                     }
@@ -313,6 +395,26 @@
                     devicesDiv.innerHTML = html;
                     loadingDiv.style.display = 'none';
                     devicesDiv.style.display = 'flex';
+                    
+                    // Now that DOM is updated, run online status checks at device level
+                    const onlineCheckPromises = Array.from(deviceStatusChecks.entries()).map(async ([deviceId, shouldCheck]) => {
+                        const cardIds = cardsByDevice.get(deviceId) || [];
+                        
+                        if (shouldCheck) {
+                            // Check device online status (will use cache if available)
+                            const isOnline = await getDeviceOnlineStatus(deviceId);
+                            // Update all cards for this device
+                            cardIds.forEach(cardId => updateOnlineIndicator(cardId, isOnline));
+                        } else {
+                            // Mark as offline immediately if last advertisement is older than an hour
+                            cardIds.forEach(cardId => updateOnlineIndicator(cardId, false));
+                        }
+                    });
+                    
+                    // Run all online status checks asynchronously
+                    Promise.all(onlineCheckPromises).catch(error => {
+                        console.error('Error checking device online statuses:', error);
+                    });
                     
                     // Update last refreshed time
                     document.getElementById('lastRefreshed').textContent = new Date().toLocaleTimeString();

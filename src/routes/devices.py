@@ -8,6 +8,7 @@ from db import get_async_db
 from db.devices import Device as deviceDB
 from db.ports import Port as portsDB
 from dependencies.auth import AuthUser, require_user
+from kegtron import gatt
 from lib import logging
 from lib.config import Config
 from schemas.devices import DeviceCreate, DeviceUpdate
@@ -77,6 +78,16 @@ async def get_device(device_id: str, db: AsyncSession = Depends(get_async_db)) -
     if not device:
         raise HTTPException(status_code=404, detail=f"Device with id {device_id} not found")
     return transform_device(device)
+
+
+@router.get("/{device_id}/online")
+async def get_device_online(device_id: str, db: AsyncSession = Depends(get_async_db)) -> dict:
+    device = await deviceDB.get(device_id, db, options=[selectinload(deviceDB.ports)])
+    if not device:
+        raise HTTPException(status_code=404, detail=f"Device with id {device_id} not found")
+
+    online = await gatt.test_connection(device)
+    return {"online": online}
 
 
 async def update_device_ports(

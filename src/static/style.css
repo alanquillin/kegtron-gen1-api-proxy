@@ -399,6 +399,73 @@ body {
     color: #007bff;
 }
 
+/* Online status indicator styles */
+.online-indicator {
+    position: absolute;
+    top: 10px;
+    right: 40px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+/* When no settings icon is present (user not logged in) */
+.device-card:not(:has(.settings-icon)) .online-indicator {
+    right: 10px;
+}
+
+.online-indicator.online {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+.online-indicator.offline {
+    background-color: #f8d7da;
+    color: #721c24;
+}
+
+.online-indicator.checking {
+    background-color: #fff3cd;
+    color: #856404;
+}
+
+.online-indicator .status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+.online-indicator.online .status-dot {
+    background-color: #28a745;
+    animation: pulse 2s infinite;
+}
+
+.online-indicator.offline .status-dot {
+    background-color: #dc3545;
+}
+
+.online-indicator.checking .status-dot {
+    background-color: #ffc107;
+    animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(40, 167, 69, 0.7);
+    }
+    70% {
+        box-shadow: 0 0 0 6px rgba(40, 167, 69, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(40, 167, 69, 0);
+    }
+}
+
 /* Auto-refresh status styles */
 #refreshStatus {
     font-weight: 600;
