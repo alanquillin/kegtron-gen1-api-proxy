@@ -237,9 +237,9 @@ async def proc_kegtron_device(device: BLEDevice, adv_data: AdvertisementData, ra
     if addr in kegtron_devices:
         if BACKEND == "db":
             async with AsyncSessionLocal() as db:
-                device = await Device.get_by_mac(addr, db)
-                if device:
-                    await device.update(db, last_advertisement_timestamp_utc=utcnow_aware())
+                dev = await Device.get_by_mac(addr, db)
+                if dev:
+                    await dev.update(db, last_advertisement_timestamp_utc=utcnow_aware())
         kegtron_devices[addr]["rssi"] = adv_data.rssi
         kegtron_devices[addr]["last_advertisement_timestamp_utc"] = utcnow_aware()
 

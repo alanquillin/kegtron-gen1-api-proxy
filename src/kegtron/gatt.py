@@ -68,11 +68,14 @@ async def unlock_all(device):
 
 async def test_connection(device) -> bool:
     mac = device.mac
-    async with kegtron.lock:
-        async with BleakClient(mac) as client:
-            LOGGER.debug("connected to Kegtron at %s", mac)
-            if client.is_connected:
-                LOGGER.debug("device is connected")
-                return True
-
-    return False
+    try:
+        async with kegtron.lock:
+            async with BleakClient(mac) as client:
+                LOGGER.debug("connected to Kegtron at %s", mac)
+                if client.is_connected:
+                    LOGGER.debug("device is connected")
+                    return True
+            return False
+    except Exception as e:
+        LOGGER.error("error testing connection to device at %s: %s", mac, e)
+        return False
