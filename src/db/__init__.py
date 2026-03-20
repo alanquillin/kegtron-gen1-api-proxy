@@ -1,7 +1,7 @@
 import os
 from typing import Any, AsyncGenerator, Dict, List, Optional, Type, TypeVar
 
-from sqlalchemy import create_engine, func, select
+from sqlalchemy import create_engine, event, func, select
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.inspection import inspect
@@ -46,6 +46,13 @@ async_engine = create_async_engine(ASYNC_DATABASE_URL, echo=False, future=True)
 AsyncSessionLocal = sessionmaker(async_engine, class_=AsyncSession, expire_on_commit=False)
 
 Base = declarative_base()
+
+
+@event.listens_for(engine, "connect")
+def set_sqlite_pragma(dbapi_connection, *args, **kwargs):
+    cursor = dbapi_connection.cursor()
+    cursor.execute("PRAGMA journal_mode=WAL")
+    cursor.close()
 
 
 async def get_async_db() -> AsyncGenerator[AsyncSession, None]:
